@@ -1,3 +1,5 @@
+# Copyright 2016 EMC Corporation
+
 import vmax_smis_base
 
 STORAGEGROUPTYPE = 4
@@ -18,12 +20,12 @@ class VmaxSmisMasking(object):
         if not hasattr(self, 'smis_base'):
             self.smis_base = vmax_smis_base.VmaxSmisBase(**kwargs)
 
-    def create_masking_view(self, system_name, maskingViewName, initiatorMaskingGroup,
-                            deviceMaskingGroup, targetMaskingGroup):
-        rc, job = self.smis_base.invoke_method('CreateMaskingView', system_name, ElementName=maskingViewName,
-                                                InitiatorMaskingGroup=initiatorMaskingGroup,
-                                                DeviceMaskingGroup=deviceMaskingGroup,
-                                                TargetMaskingGroup=targetMaskingGroup)
+    def create_masking_view(self, system_name, masking_view_name, initiator_masking_group,
+                            device_masking_group, target_masking_group):
+        rc, job = self.smis_base.invoke_method('CreateMaskingView', system_name, ElementName=masking_view_name,
+                                               InitiatorMaskingGroup=initiator_masking_group,
+                                               DeviceMaskingGroup=device_masking_group,
+                                               TargetMaskingGroup=target_masking_group)
         return rc, job
 
     def _list_all_sgs(self):

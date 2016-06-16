@@ -1,8 +1,7 @@
-__author__ = 'rodgek'
+# Copyright 2016 EMC Corporation
 
 import pywbem
 import inspect
-import re
 from oslo_service import loopingcall
 import vmax_smis_https
 
@@ -346,11 +345,12 @@ class VmaxSmisBase(object):
         else:
             return True
 
-    def get_ecom_int(self, number_str, datatype):
+    @staticmethod
+    def get_ecom_int(number_str, data_type):
         """Get the ecom int from the number.
 
-        :param numStr: the number in string format
-        :param datatype: the type to convert it to
+        :param number_str: the number in string format
+        :param data_type: the type to convert it to
         :returns: result
         """
         try:
@@ -360,7 +360,7 @@ class VmaxSmisBase(object):
                 '32': pywbem.Uint32(number_str),
                 '64': pywbem.Uint64(number_str)
             }
-            result = result.get(datatype, number_str)
+            result = result.get(data_type, number_str)
         except NameError:
             result = number_str
 

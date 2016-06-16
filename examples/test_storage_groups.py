@@ -1,3 +1,5 @@
+# Copyright 2016 EMC Corporation
+
 from emc_vmax_smis.vmax_smis_base import VmaxSmisBase
 from emc_vmax_smis.vmax_smis_masking import VmaxSmisMasking
 

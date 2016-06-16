@@ -1,3 +1,5 @@
+# Copyright 2016 EMC Corporation
+
 from vmax_smis_base import VmaxSmisBase
 
 
