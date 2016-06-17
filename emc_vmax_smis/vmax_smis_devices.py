@@ -1,5 +1,6 @@
 # Copyright 2016 EMC Corporation
 
+import time
 from vmax_smis_base import VmaxSmisBase
 
 
@@ -8,11 +9,20 @@ class VmaxSmisDevices(object):
         self.refresh = False
         self.devices = None
 
+        self.interval = 30
+        self.refresh_time = 0
+
         for attr in kwargs.keys():
             setattr(self, attr, kwargs[attr])
 
         if not hasattr(self, 'smis_base'):
             self.smis_base = VmaxSmisBase(**kwargs)
+
+    def _reset(self):
+        current_time = time.time()
+        if (current_time > self.refresh_time) or ((current_time + self.interval) < self.refresh_time):
+            self.refresh_time = current_time + self.interval
+            self.refresh = True
 
     def _load_all_devices(self):
         if self.refresh or self.devices is None:

@@ -1,31 +1,33 @@
 # Copyright 2016 EMC Corporation
 
 from emc_vmax_smis.vmax_smis_base import VmaxSmisBase
+from emc_vmax_smis.vmax_smis_masking import VmaxSmisMasking
 
 if __name__ == '__main__':
-    o = VmaxSmisBase(host='10.108.247.22', port=5989, use_ssl=True)
+    smis_base = VmaxSmisBase(host='10.108.247.22', port=5989, use_ssl=True)
+    smis_masking = VmaxSmisMasking(smis_base=smis_base)
 
-    empty_groups = []
+    systems = smis_base.list_storage_system_names()
+    for s in systems:
+        unreferenced = []
+        nohbas = []
+        groups = smis_masking.list_ig_instance_ids(s)
+        for ig in groups:
+            print smis_masking.get_ig_name(s, ig)
+            views = smis_masking.list_views_containing_ig(s, ig)
+            if len(views) == 0:
+                unreferenced.append(ig)
 
-    groups = o.list_initiator_groups()
+            hbas = smis_masking.list_initiators_in_ig(s, ig)
+            if len(hbas) == 0:
+                nohbas.append(ig)
+            for hba in hbas:
+                print '\t' + str(hba)
 
-    for ig in groups:
-        views = o.list_views_for_initiator_group(ig)
-        if len(views) > 0:
-            print str(ig)
-            for v in views:
-                print '\t' + str(v)
+        print '\nEmpty Groups'
+        for ig in nohbas:
+            print smis_masking.get_ig_name(s, ig)
 
-    for e in groups:
-        print str(e)
-        initiators = o.list_initiators_in_group(e)
-        for i in initiators:
-            print '\t' + str(i)
-        if len(initiators) == 0:
-            empty_groups.append(i)
-
-    print '\nEmpty Groups'
-    for e in empty_groups:
-        print str(e)
-
-    print len(empty_groups)
+        print '\nNot in any masking view'
+        for u in unreferenced:
+            print smis_masking.get_ig_name(s, u)

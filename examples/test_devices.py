@@ -11,7 +11,7 @@ if __name__ == '__main__':
     for s in systems:
         print str(smis_base.find_storage_system(s))
         devs = smis_devices.list_all_devices(s)
-        for d in devs[-10:]:
+        for d in devs[-50:]:
             print '\t' + d + '\t' + str(smis_devices.get_volume_size(system_name=s, device_id=d)/(1024*1024))
             print '\t\t' + str(smis_devices.get_storage_group(system_name=s, device_id=d))
         print 'Total count = ' + str(len(devs))

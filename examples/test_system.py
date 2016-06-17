@@ -35,3 +35,9 @@ if __name__ == '__main__':
     for s in stor:
         for item in s.items():
             print '\t' + str(item)
+
+    print '\nlist_management_server_software_identity()'
+    stor = o.list_management_server_software_identity()
+    for s in stor:
+        for item in s.items():
+            print '\t' + str(item)

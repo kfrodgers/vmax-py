@@ -8,6 +8,7 @@ if __name__ == '__main__':
     smis_base = VmaxSmisBase(host='10.108.247.22', port=5989, use_ssl=True)
     smis_masking = VmaxSmisMasking(smis_base=smis_base)
     empty_groups = []
+    unrefed_groups = []
 
     systems = smis_base.list_storage_system_names()
     for s in systems:
@@ -20,12 +21,14 @@ if __name__ == '__main__':
             else:
                 empty_groups.append(sg)
 
+            views = smis_masking.list_views_containing_sg(s, sg)
+            if len(views) == 0:
+                unrefed_groups.append(sg)
+
+        print '\n' + str(s) + ': Storage Groups not in View'
+        for sg in unrefed_groups:
+            print smis_masking.get_sg_name(s, sg)
+
         print '\n' + str(s) + ': Empty Storage Groups'
         for sg in empty_groups:
             print smis_masking.get_sg_name(s, sg)
-            views = smis_masking.list_views_containing_sg(s, sg)
-            if len(views) > 0:
-                for v in views:
-                    print '\t' + str(v)
-            else:
-                pass

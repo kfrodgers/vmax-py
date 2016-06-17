@@ -1,6 +1,7 @@
 # Copyright 2016 EMC Corporation
 
 import vmax_smis_base
+import time
 
 STORAGEGROUPTYPE = 4
 PORTGROUPTYPE = 3
@@ -14,11 +15,25 @@ class VmaxSmisMasking(object):
         self.pg_refresh = False
         self.pg_list = None
 
+        self.ig_refresh = False
+        self.ig_list = None
+
+        self.interval = 30
+        self.refresh_time = 0
+
         for attr in kwargs.keys():
             setattr(self, attr, kwargs[attr])
 
         if not hasattr(self, 'smis_base'):
             self.smis_base = vmax_smis_base.VmaxSmisBase(**kwargs)
+
+    def _reset(self):
+        current_time = time.time()
+        if (current_time > self.refresh_time) or ((current_time + self.interval) < self.refresh_time):
+            self.refresh_time = current_time + self.interval
+            self.sg_refresh = True
+            self.pg_refresh = True
+            self.ig_refresh = True
 
     def create_masking_view(self, system_name, masking_view_name, initiator_masking_group,
                             device_masking_group, target_masking_group):
@@ -29,6 +44,7 @@ class VmaxSmisMasking(object):
         return rc, job
 
     def _list_all_sgs(self):
+        self._reset()
         if self.sg_refresh or self.sg_list is None:
             self.sg_list = self.smis_base.list_storage_groups()
             self.sg_refresh = False
@@ -115,6 +131,7 @@ class VmaxSmisMasking(object):
         return directors
 
     def _list_all_pgs(self):
+        self._reset()
         if self.pg_refresh or self.pg_list is None:
             self.pg_list = self.smis_base.list_port_groups()
             self.pg_refresh = False
@@ -188,3 +205,47 @@ class VmaxSmisMasking(object):
                                      'error': errordesc}
                 raise RuntimeError(exception_message)
         return rc
+
+    def _list_all_igs(self):
+        self._reset()
+        if self.ig_refresh or self.sg_list is None:
+            self.ig_list = self.smis_base.list_initiator_groups()
+            self.ig_refresh = False
+        return self.ig_list
+
+    def list_ig_instance_ids(self, system_name):
+        groups = self._list_all_igs()
+
+        instance_ids = []
+        for ig in groups:
+            if system_name in ig['InstanceID']:
+                instance_ids.append(unicode(ig['InstanceID']))
+
+        return instance_ids
+
+    def get_ig_name(self, system_name, ig_instance_id):
+        ig_instance = self.get_ig_instance(system_name, ig_instance_id)
+        return ig_instance['ElementName']
+
+    def get_ig_instance_name(self, system_name, ig_instance_id):
+        instance_names = self._list_all_igs()
+        for instance_name in instance_names:
+            if system_name in instance_name['InstanceID'] and instance_name['InstanceID'] == ig_instance_id:
+                break
+        else:
+            raise ReferenceError('%s: storage group instance id not found' % ig_instance_id)
+
+        return instance_name
+
+    def get_ig_instance(self, system_name, ig_instance_id):
+        instance_name = self.get_ig_instance_name(system_name, ig_instance_id)
+        return self.smis_base.get_instance(instance_name)
+
+    def check_initiator_group(self, system_name, ig_instance_id):
+        return self.get_sg_instance_name(system_name, ig_instance_id) is not None
+
+    def list_initiators_in_ig(self, system_name, ig_instance_id):
+        return self.smis_base.list_initiators_in_group(self.get_ig_instance_name(system_name, ig_instance_id))
+
+    def list_views_containing_ig(self, system_name, ig_instance_id):
+        return self.smis_base.list_views_for_initiator_group(self.get_ig_instance_name(system_name, ig_instance_id))

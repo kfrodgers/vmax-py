@@ -103,6 +103,9 @@ class VmaxSmisBase(object):
         rc_code, rc_dict = self.conn.InvokeMethod(instance_name, config_service, **kwargs)
         return rc_code, rc_dict
 
+    def list_management_server_software_identity(self):
+        return self._list('EMC_ManagementServerSoftwareIdentity')
+
     def list_storage_software_identity(self):
         return self._list('Symm_StorageSystemSoftwareIdentity')
 
@@ -263,6 +266,24 @@ class VmaxSmisBase(object):
         else:
             raise ReferenceError('%s: item not found' % system_name)
         return config_service
+
+    def check_se_version(self):
+        major_version = 0
+        minor_version = 0
+
+        management_ids = self.list_management_server_software_identity()
+        if len(management_ids) > 0:
+            for properties in management_ids[0].items():
+                if properties[0] == 'MajorVersion':
+                    cim_properties = properties[1]
+                    major_version = int(cim_properties)
+                if properties[0] == 'MinorVersion':
+                    cim_properties = properties[1]
+                    minor_version = int(cim_properties)
+                if major_version > 0 and minor_version > 0:
+                    break
+
+        return (major_version == 8 and minor_version >= 1) or (major_version > 8)
 
     def is_array_v3(self, system_name):
         software_ids = self.list_storage_software_identity()
