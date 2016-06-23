@@ -22,7 +22,6 @@ if __name__ == '__main__':
     print '\nlist_storage_system_instance_names'
     stor = o.list_storage_system_instance_names()
     for s in stor:
-        print str(s)
         pools = o.find_virtual_provisioning_pool(s)
         for p in pools:
             inst = o.get_instance(p)

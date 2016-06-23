@@ -124,9 +124,10 @@ class VmaxSmisMasking(object):
 
     def list_storage_directors(self, system_name):
         directors = []
-        endpoints = self.smis_base.list_storage_enpoints()
+        endpoints = self.smis_base.list_storage_endpoints(system_name)
         for e in endpoints:
-            if system_name in e['SystemName']:
+            if e['CreationClassName'] == u'Symm_FCSCSIProtocolEndpoint' or \
+                            e['CreationClassName'] == u'Symm_iSCSIProtocolEndpoint':
                 directors.append(e)
         return directors
 

@@ -32,3 +32,7 @@ if __name__ == '__main__':
         print '\n' + str(s) + ': Empty Storage Groups'
         for sg in empty_groups:
             print smis_masking.get_sg_name(s, sg)
+
+        print '\n' + str(s) + ': List Storage Directors'
+        for dir in smis_masking.list_storage_directors(s):
+            print str(dir)

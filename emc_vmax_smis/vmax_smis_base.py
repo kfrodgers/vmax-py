@@ -72,7 +72,7 @@ class VmaxSmisBase(object):
         if property_list is None:
             instances = self.conn.EnumerateInstances(name)
         else:
-            instances =  self.conn.EnumerateInstances(name, PropertyList=property_list)
+            instances = self.conn.EnumerateInstances(name, PropertyList=property_list)
         return instances
 
     def _list_names(self, name):
@@ -106,9 +106,9 @@ class VmaxSmisBase(object):
             instance = self.conn.GetInstance(instance, PropertyList=property_list, LocalOnly=local_only)
         return instance
 
-    def invoke_method(self, instance_name, system_name, **kwargs):
+    def invoke_method(self, method_name, system_name, **kwargs):
         config_service = self.find_controller_configuration_service(system_name)
-        rc_code, rc_dict = self.conn.InvokeMethod(instance_name, config_service, **kwargs)
+        rc_code, rc_dict = self.conn.InvokeMethod(method_name, config_service, **kwargs)
         return rc_code, rc_dict
 
     def list_management_server_software_identity(self):
@@ -180,11 +180,21 @@ class VmaxSmisBase(object):
     def list_storage_groups(self):
         return self._list_names('CIM_DeviceMaskingGroup')
 
-    def list_storage_enpoints(self):
+    def list_storage_endpoints(self, system_name):
         endpoints = []
-        endpoints.extend(self.list_storage_fc_enpoints())
-        endpoints.extend(self.list_storage_iscsi_enpoints())
+        proc_names = self.list_storage_processor_systems(system_name)
+        for proc_name in proc_names:
+            dirs = self._find(proc_name, result_class='CIM_SCSIProtocolEndpoint')
+            endpoints.extend(dirs)
         return endpoints
+
+    def list_storage_processor_systems(self, system_name):
+        proc_names = []
+        names = self._list_names('Symm_StorageProcessorSystem')
+        for name in names:
+            if system_name in name['Name']:
+                proc_names.append(name)
+        return proc_names
 
     def list_storage_fc_enpoints(self):
         return self._list_names('Symm_FCSCSIProtocolEndpoint')
@@ -322,9 +332,12 @@ class VmaxSmisBase(object):
     def wait_for_job_complete(self, job_name):
         self._wait_for_job_complete(job_name, interval_in_secs=30, max_retries=5)
 
-        jobinstance = self.get_instance(job_name)
-        rc = jobinstance['ErrorCode']
-        error_desc = jobinstance['ErrorDescription']
+        job_instance = self.get_instance(job_name)
+        if 'Status' in job_instance and job_instance['Status'] == u'OK':
+            rc = 0
+        else:
+            rc = job_instance['ErrorCode']
+        error_desc = job_instance['ErrorDescription']
 
         return rc, error_desc
 
