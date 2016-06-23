@@ -68,8 +68,12 @@ class VmaxSmisBase(object):
             exception_message = "Cannot connect to ECOM server."
             raise RuntimeError(RuntimeError=exception_message)
 
-    def _list(self, name):
-        return self.conn.EnumerateInstances(name)
+    def _list(self, name, property_list=None):
+        if property_list is None:
+            instances = self.conn.EnumerateInstances(name)
+        else:
+            instances =  self.conn.EnumerateInstances(name, PropertyList=property_list)
+        return instances
 
     def _list_names(self, name):
         return self.conn.EnumerateInstanceNames(name)
@@ -95,8 +99,12 @@ class VmaxSmisBase(object):
             refs = None
         return refs
 
-    def get_instance(self, instance, local_only=False):
-        return self.conn.GetInstance(instance, LocalOnly=local_only)
+    def get_instance(self, instance, property_list=None, local_only=False):
+        if property_list is None or len(property_list) == 0:
+            instance = self.conn.GetInstance(instance, LocalOnly=local_only)
+        else:
+            instance = self.conn.GetInstance(instance, PropertyList=property_list, LocalOnly=local_only)
+        return instance
 
     def invoke_method(self, instance_name, system_name, **kwargs):
         config_service = self.find_controller_configuration_service(system_name)
@@ -121,8 +129,11 @@ class VmaxSmisBase(object):
     def list_storage_relocation_services(self):
         return self._list_names('Symm_StorageRelocationService')
 
-    def list_storage_volumes(self):
+    def list_storage_volumes_names(self):
         return self._list_names('Symm_StorageVolume')
+
+    def list_storage_volumes(self, property_list=None):
+        return self._list('Symm_StorageVolume', property_list=property_list)
 
     def list_storage_hardwareid_services(self):
         return self._list('EMC_StorageHardwareIDManagementService')
@@ -199,8 +210,11 @@ class VmaxSmisBase(object):
     def list_initiators_in_group(self, storage_group):
         return self._find(storage_group, result_class='SE_StorageHardwareID')
 
+    def list_storage_system_instance_names(self):
+        return self._list_names('EMC_StorageSystem')
+
     def list_storage_system_names(self):
-        systems = self._list_names('EMC_StorageSystem')
+        systems = self.list_storage_system_instance_names()
         names = []
         for s in systems:
             names.append(s['Name'])
@@ -218,11 +232,11 @@ class VmaxSmisBase(object):
     def find_storage_hardware_ids(self, instance):
         return self._find(instance, result_class='EMC_StorageHardwareID')
 
-    def find_virtual_provisioning_pool(self, instance):
-        return self._find(instance, result_class='EMC_VirtualProvisioningPool')
+    def find_virtual_provisioning_pool(self, system_instance_name):
+        return self._find(system_instance_name, result_class='EMC_VirtualProvisioningPool')
 
-    def find_srp_storage_pool(self, instance):
-        return self._find(instance, result_class='Symm_SRPStoragePool')
+    def find_srp_storage_pool(self, system_instance_name):
+        return self._find(system_instance_name, result_class='Symm_SRPStoragePool')
 
     def find_volume_metas(self, volume):
         return self._find(volume, result_class='EMC_Meta')

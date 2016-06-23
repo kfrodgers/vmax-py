@@ -11,11 +11,25 @@ if __name__ == '__main__':
     for s in systems:
         print str(smis_base.find_storage_system(s))
         devs = smis_devices.list_all_devices(s)
-        for d in devs[-50:]:
-            print '\t' + d + '\t' + str(smis_devices.get_volume_size(system_name=s, device_id=d)/(1024*1024))
+        for d in devs[-5:]:
+            vol_property = smis_devices.get_volume_properties(s, d, ['ElementName'])
+            device_name = vol_property['ElementName']
+            print '\t' + d + ' ' + \
+                str(device_name)
+            print '\t\t' + str(smis_devices.get_volume_size(system_name=s, device_id=d)/(1024*1024))
             print '\t\t' + str(smis_devices.get_storage_group(system_name=s, device_id=d))
         print 'Total count = ' + str(len(devs))
 
-        req = [u'ThinlyProvisioned', u'NameFormat', u'Caption', u'StorageTieringSelection',
-               u'EMCIsDeDuplicated', u'DeviceID', u'NoSinglePointOfFailure']
-        print str(smis_devices.get_volume_properties(s, devs[-1], req))
+        print '\n'
+        list = smis_devices.get_volume_properties(s, devs[-1], ['IsCompressed', 'IdentifyingDescriptions', 'EMCIsDeDuplicated' ])
+        for key in list:
+            print key + ': \t' + str(list[key])
+
+        print '\n'
+        pools = smis_devices.list_storage_pools(s)
+        for p in pools:
+                print str(p)
+
+        rev = smis_devices.get_volume_by_name(s, device_name)
+        print '\n' + str(device_name) + ' is device ' + str(rev)
+

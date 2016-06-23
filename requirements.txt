@@ -1,0 +1,2 @@
+pywbem>=0.7.0
+oslo.service

@@ -19,6 +19,19 @@ if __name__ == '__main__':
         print str(s)
         print '\tIs V3 == ' + str(o.is_array_v3(s))
 
+    print '\nlist_storage_system_instance_names'
+    stor = o.list_storage_system_instance_names()
+    for s in stor:
+        print str(s)
+        pools = o.find_virtual_provisioning_pool(s)
+        for p in pools:
+            inst = o.get_instance(p)
+            print '\tPOOL == ' + str(inst['ElementName'])
+            print '\t' + str(p)
+        pools = o.find_srp_storage_pool(s)
+        for p in pools:
+            print '\tSRP == ' + str(p)
+
     print '\nlist_controller_configuration_services()'
     stor = o.list_controller_configuration_services()
     for s in stor:
@@ -41,3 +54,4 @@ if __name__ == '__main__':
     for s in stor:
         for item in s.items():
             print '\t' + str(item)
+

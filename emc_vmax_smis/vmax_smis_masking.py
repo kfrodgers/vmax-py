@@ -171,6 +171,9 @@ class VmaxSmisMasking(object):
     def list_directors_in_pg(self, system_name, pg_instance_id):
         return self.smis_base.list_ports_in_group(self.get_pg_instance_name(system_name, pg_instance_id))
 
+    def list_views_containing_pg(self, system_name, pg_instance_id):
+        return self.smis_base.list_views_for_port_group(self.get_pg_instance_name(system_name, pg_instance_id))
+
     def create_pg(self, system_name, pg_name, director_names):
         rc, job = self.smis_base.invoke_method('CreateGroup', system_name, GroupName=pg_name,
                                                Type=self.smis_base.get_ecom_int(PORTGROUPTYPE, '16'),
