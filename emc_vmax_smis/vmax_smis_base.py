@@ -78,7 +78,7 @@ class VmaxSmisBase(object):
     def _list_names(self, name):
         return self.conn.EnumerateInstanceNames(name)
 
-    def _find(self, name, result_class=None, assoc_class=None):
+    def associator_names(self, name, result_class=None, assoc_class=None):
         groups = None
         if result_class is not None and assoc_class is not None:
             groups = self.conn.AssociatorNames(name, ResultClass=result_class, AssocClass=assoc_class)
@@ -86,6 +86,16 @@ class VmaxSmisBase(object):
             groups = self.conn.AssociatorNames(name, AssocClass=assoc_class)
         elif assoc_class is None:
             groups = self.conn.AssociatorNames(name, ResultClass=result_class)
+        return groups
+
+    def associators(self, name, result_class=None, assoc_class=None):
+        groups = None
+        if result_class is not None and assoc_class is not None:
+            groups = self.conn.Associators(name, ResultClass=result_class, AssocClass=assoc_class)
+        elif result_class is None:
+            groups = self.conn.Associators(name, AssocClass=assoc_class)
+        elif assoc_class is None:
+            groups = self.conn.Associators(name, ResultClass=result_class)
         return groups
 
     def _references(self, name, result_class=None, assoc_class=None, role='Dependent'):
@@ -106,8 +116,13 @@ class VmaxSmisBase(object):
             instance = self.conn.GetInstance(instance, PropertyList=property_list, LocalOnly=local_only)
         return instance
 
-    def invoke_method(self, method_name, system_name, **kwargs):
+    def invoke_controller_method(self, method_name, system_name, **kwargs):
         config_service = self.find_controller_configuration_service(system_name)
+        rc_code, rc_dict = self.conn.InvokeMethod(method_name, config_service, **kwargs)
+        return rc_code, rc_dict
+
+    def invoke_storage_method(self, method_name, system_name, **kwargs):
+        config_service = self.find_storage_configuration_service(system_name)
         rc_code, rc_dict = self.conn.InvokeMethod(method_name, config_service, **kwargs)
         return rc_code, rc_dict
 
@@ -151,31 +166,31 @@ class VmaxSmisBase(object):
         return self._list_names('Symm_LunMaskingView')
 
     def list_storage_group_in_view(self, masking_view):
-        groups = self._find(masking_view, result_class='CIM_DeviceMaskingGroup')
+        groups = self.associator_names(masking_view, result_class='CIM_DeviceMaskingGroup')
         if len(groups) == 0:
             raise ReferenceError('%s: No storage group in view' % str(masking_view))
         return groups[0]
 
     def list_views_for_storage_group(self, storage_group):
-        return self._find(storage_group, result_class='Symm_LunMaskingView')
+        return self.associator_names(storage_group, result_class='Symm_LunMaskingView')
 
     def list_initiator_group_in_view(self, masking_view):
-        groups = self._find(masking_view, result_class='CIM_InitiatorMaskingGroup')
+        groups = self.associator_names(masking_view, result_class='CIM_InitiatorMaskingGroup')
         if len(groups) == 0:
             raise ReferenceError('%s: No initiator group in view' % str(masking_view))
         return groups[0]
 
     def list_views_for_initiator_group(self, initiator_group):
-        return self._find(initiator_group, result_class='Symm_LunMaskingView')
+        return self.associator_names(initiator_group, result_class='Symm_LunMaskingView')
 
     def list_port_group_in_view(self, masking_view):
-        groups = self._find(masking_view, result_class='CIM_TargetMaskingGroup')
+        groups = self.associator_names(masking_view, result_class='CIM_TargetMaskingGroup')
         if len(groups) == 0:
             raise ReferenceError('%s: No port group in view' % str(masking_view))
         return groups[0]
 
     def list_views_for_port_group(self, port_group):
-        return self._find(port_group, result_class='Symm_LunMaskingView')
+        return self.associator_names(port_group, result_class='Symm_LunMaskingView')
 
     def list_storage_groups(self):
         return self._list_names('CIM_DeviceMaskingGroup')
@@ -184,7 +199,7 @@ class VmaxSmisBase(object):
         endpoints = []
         proc_names = self.list_storage_processor_systems(system_name)
         for proc_name in proc_names:
-            dirs = self._find(proc_name, result_class='CIM_SCSIProtocolEndpoint')
+            dirs = self.associator_names(proc_name, result_class='CIM_SCSIProtocolEndpoint')
             endpoints.extend(dirs)
         return endpoints
 
@@ -210,22 +225,22 @@ class VmaxSmisBase(object):
         return endpoints
 
     def list_storage_groups_from_volume(self, volume):
-        return self._find(volume, result_class='CIM_DeviceMaskingGroup')
+        return self.associator_names(volume, result_class='CIM_DeviceMaskingGroup')
 
     def list_volumes_in_group(self, storage_group):
-        return self._find(storage_group, result_class='CIM_StorageVolume')
+        return self.associator_names(storage_group, result_class='CIM_StorageVolume')
 
     def list_port_groups(self):
         return self._list_names('CIM_TargetMaskingGroup')
 
     def list_ports_in_group(self, port_group):
-        return self._find(port_group, result_class='CIM_SCSIProtocolEndpoint')
+        return self.associator_names(port_group, result_class='CIM_SCSIProtocolEndpoint')
 
     def list_initiator_groups(self):
         return self._list_names('CIM_InitiatorMaskingGroup')
 
     def list_initiators_in_group(self, storage_group):
-        return self._find(storage_group, result_class='SE_StorageHardwareID')
+        return self.associator_names(storage_group, result_class='SE_StorageHardwareID')
 
     def list_storage_system_instance_names(self):
         return self._list_names('EMC_StorageSystem')
@@ -244,37 +259,37 @@ class VmaxSmisBase(object):
         return self._list_names('Symm_TierPolicyService')
 
     def find_storgae_extents(self, instance):
-        return self._find(instance, result_class='CIM_StorageExtent')
+        return self.associator_names(instance, result_class='CIM_StorageExtent')
 
     def find_storage_hardware_ids(self, instance):
-        return self._find(instance, result_class='EMC_StorageHardwareID')
+        return self.associator_names(instance, result_class='EMC_StorageHardwareID')
 
     def find_virtual_provisioning_pool(self, system_instance_name):
-        return self._find(system_instance_name, result_class='EMC_VirtualProvisioningPool')
+        return self.associator_names(system_instance_name, result_class='EMC_VirtualProvisioningPool')
 
     def find_srp_storage_pool(self, system_instance_name):
-        return self._find(system_instance_name, result_class='Symm_SRPStoragePool')
+        return self.associator_names(system_instance_name, result_class='Symm_SRPStoragePool')
 
     def find_volume_metas(self, volume):
-        return self._find(volume, result_class='EMC_Meta')
+        return self.associator_names(volume, result_class='EMC_Meta')
 
     def find_tcp_protocol_endpoints(self, instance):
-        return self._find(instance, assoc_class='CIM_BindsTo')
+        return self.associator_names(instance, assoc_class='CIM_BindsTo')
 
     def find_volumes_allocated_from_storage_pool(self, pool_instance_name):
-        return self._find(pool_instance_name, result_class='CIM_StorageVolume',
-                          assoc_class='CIM_AllocatedFromStoragePool')
+        return self.associator_names(pool_instance_name, result_class='CIM_StorageVolume',
+                                     assoc_class='CIM_AllocatedFromStoragePool')
 
     def find_meta_members_of_composite_volume(self, meta_head_instance):
-        return self._find(meta_head_instance, result_class='EMC_PartialAllocOfConcreteExtent',
-                          assoc_class='CIM_BasedOn')
+        return self.associator_names(meta_head_instance, result_class='EMC_PartialAllocOfConcreteExtent',
+                                     assoc_class='CIM_BasedOn')
 
     def get_unit_names(self, volume):
         return self._references(volume, result_class='CIM_AllocatedFromStoragePool', role='Dependent')
 
     def find_tier_policy_service(self, instance):
         found_tier_policy_service = None
-        groups = self._find(instance, result_class='Symm_TierPolicyService', assoc_class='CIM_HostedService')
+        groups = self.associator_names(instance, result_class='Symm_TierPolicyService', assoc_class='CIM_HostedService')
 
         if len(groups) > 0:
             found_tier_policy_service = groups[0]
@@ -291,6 +306,15 @@ class VmaxSmisBase(object):
 
     def find_controller_configuration_service(self, system_name):
         config_services = self.list_controller_configuration_services()
+        for config_service in config_services:
+            if system_name == config_service['SystemName']:
+                break
+        else:
+            raise ReferenceError('%s: item not found' % system_name)
+        return config_service
+
+    def find_storage_configuration_service(self, system_name):
+        config_services = self.list_storage_configuration_services()
         for config_service in config_services:
             if system_name == config_service['SystemName']:
                 break
@@ -336,8 +360,8 @@ class VmaxSmisBase(object):
         else:
             return False
 
-    def wait_for_job_complete(self, job_name):
-        self._wait_for_job_complete(job_name, interval_in_secs=30, max_retries=5)
+    def wait_for_job_complete(self, job_name, interval_in_secs=6, max_retries=30):
+        self._wait_for_job_complete(job_name, interval_in_secs, max_retries)
 
         job_instance = self.get_instance(job_name)
         if 'Status' in job_instance and job_instance['Status'] == u'OK':
@@ -348,7 +372,7 @@ class VmaxSmisBase(object):
 
         return rc, error_desc
 
-    def _wait_for_job_complete(self, job_name, interval_in_secs=10, max_retries=10):
+    def _wait_for_job_complete(self, job_name, interval_in_secs, max_retries):
         """Given the job wait for it to complete.
 
         :param job_name: the job name
@@ -362,7 +386,7 @@ class VmaxSmisBase(object):
             wait_for_job_called = kwargs['wait_for_job_called']
             if self._is_job_finished(job_name):
                 raise loopingcall.LoopingCallDone()
-            if retries > 0:
+            if retries <= 0:
                 raise loopingcall.LoopingCallDone()
             try:
                 kwargs['retries'] = retries - 1
@@ -385,8 +409,8 @@ class VmaxSmisBase(object):
         :returns: boolean -- True if finished; False if not finished;
         """
 
-        jobinstance = self.get_instance(job_name)
-        jobstate = jobinstance['JobState']
+        job_instance = self.get_instance(job_name)
+        job_state = job_instance['JobState']
 
         # From ValueMap of JobState in CIM_ConcreteJob
         # 2=New, 3=Starting, 4=Running, 32767=Queue Pending
@@ -395,7 +419,7 @@ class VmaxSmisBase(object):
         # Values("New, Starting, Running, Suspended, Shutting Down,
         # Completed, Terminated, Killed, Exception, Service,
         # Query Pending, DMTF Reserved, Vendor Reserved")]
-        if jobstate in [2, 3, 4, 32767]:
+        if job_state in [2, 3, 4, 32767]:
             return False
         else:
             return True

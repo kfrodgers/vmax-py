@@ -154,11 +154,10 @@ class VmaxSmisDevices(object):
 
     def create_volume(self, system_name, volume_name, pool_instance_id, volume_size):
         pool_instance_name = self._find_pool_instance_name(system_name, pool_instance_id)
-        rc, job = self.smis_base.invoke_method('CreateOrModifyElementFromStoragePool', system_name,
-                                               ElementName=volume_name, InPool=pool_instance_name,
-                                               ElementType=self.smis_base.get_ecom_int(THINPROVISIONING, '16'),
-                                               Size=self.smis_base.get_ecom_int(volume_size, '64'),
-                                               EMCBindElements=False)
+        rc, job = self.smis_base.invoke_storage_method('CreateOrModifyElementFromStoragePool', system_name,
+                                                       ElementName=volume_name, InPool=pool_instance_name,
+                                                       ElementType=self.smis_base.get_ecom_int(THINPROVISIONING, '16'),
+                                                       Size=self.smis_base.get_ecom_int(volume_size, '64'))
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -168,16 +167,15 @@ class VmaxSmisDevices(object):
                                        'error': errordesc}
                 raise RuntimeError(exception_message)
 
-        device_id = None
-        print str(job)
+        inst_name = self.smis_base.associators(job['job'], result_class='EMC_StorageVolume')
 
-        return device_id
+        return inst_name[0].path
 
     def destroy_volume(self, system_name, device_id):
         volume_instance = self.get_volume_instance(system_name, device_id)
 
-        rc, job = self.smis_base.invoke_method('ReturnElementsToStoragePool', system_name,
-                                               TheElements=[volume_instance])
+        rc, job = self.smis_base.invoke_storage_method('ReturnElementsToStoragePool', system_name,
+                                                       TheElements=[volume_instance])
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:

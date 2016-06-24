@@ -37,10 +37,10 @@ class VmaxSmisMasking(object):
 
     def create_masking_view(self, system_name, masking_view_name, initiator_masking_group,
                             device_masking_group, target_masking_group):
-        rc, job = self.smis_base.invoke_method('CreateMaskingView', system_name, ElementName=masking_view_name,
-                                               InitiatorMaskingGroup=initiator_masking_group,
-                                               DeviceMaskingGroup=device_masking_group,
-                                               TargetMaskingGroup=target_masking_group)
+        rc, job = self.smis_base.invoke_controller_method('CreateMaskingView', system_name, ElementName=masking_view_name,
+                                                          InitiatorMaskingGroup=initiator_masking_group,
+                                                          DeviceMaskingGroup=device_masking_group,
+                                                          TargetMaskingGroup=target_masking_group)
         return rc, job
 
     def _list_all_sgs(self):
@@ -88,9 +88,9 @@ class VmaxSmisMasking(object):
         return self.smis_base.list_views_for_storage_group(self.get_sg_instance_name(system_name, sg_instance_id))
 
     def create_sg(self, system_name, sg_name):
-        rc, job = self.smis_base.invoke_method('CreateGroup', system_name, GroupName=sg_name,
-                                               Type=self.smis_base.get_ecom_int(STORAGEGROUPTYPE, '16'),
-                                               DeleteWhenBecomesUnassociated=False)
+        rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=sg_name,
+                                                          Type=self.smis_base.get_ecom_int(STORAGEGROUPTYPE, '16'),
+                                                          DeleteWhenBecomesUnassociated=False)
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -110,8 +110,8 @@ class VmaxSmisMasking(object):
 
     def delete_sg(self, system_name, sg_instance_id):
         instance_name = self.get_sg_instance_name(system_name, sg_instance_id)
-        rc, job = self.smis_base.invoke_method('DeleteGroup', system_name,
-                                               MaskingGroup=instance_name, Force=True)
+        rc, job = self.smis_base.invoke_controller_method('DeleteGroup', system_name,
+                                                          MaskingGroup=instance_name, Force=True)
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -177,9 +177,9 @@ class VmaxSmisMasking(object):
         return self.smis_base.list_views_for_port_group(self.get_pg_instance_name(system_name, pg_instance_id))
 
     def create_pg(self, system_name, pg_name, director_names):
-        rc, job = self.smis_base.invoke_method('CreateGroup', system_name, GroupName=pg_name,
-                                               Type=self.smis_base.get_ecom_int(PORTGROUPTYPE, '16'),
-                                               Members=director_names)
+        rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=pg_name,
+                                                          Type=self.smis_base.get_ecom_int(PORTGROUPTYPE, '16'),
+                                                          Members=director_names)
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -199,8 +199,8 @@ class VmaxSmisMasking(object):
 
     def delete_pg(self, system_name, pg_instance_id):
         instance_name = self.get_pg_instance_name(system_name, pg_instance_id)
-        rc, job = self.smis_base.invoke_method('DeleteGroup', system_name,
-                                               MaskingGroup=instance_name, Force=True)
+        rc, job = self.smis_base.invoke_controller_method('DeleteGroup', system_name,
+                                                          MaskingGroup=instance_name, Force=True)
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
