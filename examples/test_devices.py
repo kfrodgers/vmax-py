@@ -31,5 +31,5 @@ if __name__ == '__main__':
                 print str(p)
 
         rev = smis_devices.get_volume_by_name(s, device_name)
-        print '\n' + str(device_name) + ' is device ' + str(rev)
+        print '\n' + str(device_name) + ' ' + str(rev)
 

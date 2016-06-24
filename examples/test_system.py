@@ -19,6 +19,11 @@ if __name__ == '__main__':
         print str(s)
         print '\tIs V3 == ' + str(o.is_array_v3(s))
 
+    print '\nlist_storage_iscsi_enpoints()'
+    stor = o.list_storage_iscsi_enpoints()
+    for s in stor:
+        print str(s)
+
     print '\nlist_storage_system_instance_names'
     stor = o.list_storage_system_instance_names()
     for s in stor:

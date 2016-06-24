@@ -200,7 +200,14 @@ class VmaxSmisBase(object):
         return self._list_names('Symm_FCSCSIProtocolEndpoint')
 
     def list_storage_iscsi_enpoints(self):
-        return self._list_names('Symm_iSCSIProtocolEndpoint')
+        endpoints = []
+        iscsi_endpoints = self._list_names('Symm_iSCSIProtocolEndpoint')
+        if iscsi_endpoints is not None:
+            endpoints.extend(iscsi_endpoints)
+        iscsi_endpoints = self._list_names('Symm_VirtualiSCSIProtocolEndpoint')
+        if iscsi_endpoints is not None:
+            endpoints.extend(iscsi_endpoints)
+        return endpoints
 
     def list_storage_groups_from_volume(self, volume):
         return self._find(volume, result_class='CIM_DeviceMaskingGroup')
