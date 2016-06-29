@@ -18,7 +18,10 @@ class VmaxSmisMasking(object):
         self.ig_refresh = False
         self.ig_list = None
 
-        self.interval = 30
+        self.mv_refresh = False
+        self.mv_list = None
+
+        self.interval = 180
         self.refresh_time = 0
 
         for attr in kwargs.keys():
@@ -34,10 +37,59 @@ class VmaxSmisMasking(object):
             self.sg_refresh = True
             self.pg_refresh = True
             self.ig_refresh = True
+            self.mv_refresh = True
+
+    def _list_all_mvs(self):
+        self._reset()
+        if self.mv_refresh or self.mv_list is None:
+            self.mv_list = self.smis_base.list_masking_views()
+            self.mv_refresh = False
+        return self.mv_list
+
+    def list_mv_instance_ids(self, system_name):
+        groups = self._list_all_mvs()
+
+        instance_ids = []
+        for sg in groups:
+            if system_name == sg['SystemName']:
+                instance_ids.append(unicode(sg['DeviceID']))
+
+        return instance_ids
+
+    def get_mv_instance_name(self, system_name, mv_device_id):
+        instance_names = self._list_all_mvs()
+        for instance_name in instance_names:
+            if system_name == instance_name['SystemName'] and instance_name['DeviceID'] == mv_device_id:
+                break
+        else:
+            raise ReferenceError('%s: masking view device id not found' % mv_device_id)
+
+        return instance_name
+
+    def get_mv_instance(self, system_name, mv_device_id, property_list=None):
+        instance_name = self.get_mv_instance_name(system_name, mv_device_id)
+        return self.smis_base.get_instance(instance_name, property_list=property_list)
+
+    def list_sgs_in_view(self, system_name, mv_device_id):
+        instance_name = self.get_mv_instance_name(system_name, mv_device_id)
+        return self.smis_base.list_storage_group_in_view(instance_name)
+
+    def list_pgs_in_view(self, system_name, mv_device_id):
+        instance_name = self.get_mv_instance_name(system_name, mv_device_id)
+        return self.smis_base.list_port_group_in_view(instance_name)
+
+    def list_igs_in_view(self, system_name, mv_device_id):
+        instance_name = self.get_mv_instance_name(system_name, mv_device_id)
+        return self.smis_base.list_initiator_group_in_view(instance_name)
+
+    def list_initiators_in_view(self, system_name, mv_device_id):
+        instance_name = self.get_mv_instance_name(system_name, mv_device_id)
+        return self.smis_base.find_initiators_in_group(instance_name)
 
     def create_masking_view(self, system_name, masking_view_name, initiator_masking_group,
                             device_masking_group, target_masking_group):
-        rc, job = self.smis_base.invoke_controller_method('CreateMaskingView', system_name, ElementName=masking_view_name,
+        rc, job = self.smis_base.invoke_controller_method('CreateMaskingView', system_name,
+                                                          ElementName=masking_view_name,
                                                           InitiatorMaskingGroup=initiator_masking_group,
                                                           DeviceMaskingGroup=device_masking_group,
                                                           TargetMaskingGroup=target_masking_group)
@@ -46,7 +98,7 @@ class VmaxSmisMasking(object):
     def _list_all_sgs(self):
         self._reset()
         if self.sg_refresh or self.sg_list is None:
-            self.sg_list = self.smis_base.list_storage_groups()
+            self.sg_list = self.smis_base.list_storage_group_names()
             self.sg_refresh = False
         return self.sg_list
 
@@ -61,7 +113,7 @@ class VmaxSmisMasking(object):
         return instance_ids
 
     def get_sg_name(self, system_name, sg_instance_id):
-        sg_instance = self.get_sg_instance(system_name, sg_instance_id)
+        sg_instance = self.get_sg_instance(system_name, sg_instance_id, property_list=['ElementName'])
         return sg_instance['ElementName']
 
     def get_sg_instance_name(self, system_name, sg_instance_id):
@@ -74,9 +126,18 @@ class VmaxSmisMasking(object):
 
         return instance_name
 
-    def get_sg_instance(self, system_name, sg_instance_id):
+    def get_sg_by_name(self, system_name, storage_group_name):
+        for sg in self.smis_base.list_storage_groups(property_list=['ElementName', 'InstanceID']):
+            if system_name in sg['InstanceID'] and sg['ElementName'] == storage_group_name:
+                break
+        else:
+            raise ReferenceError('%s - %s: storage group not found' % (system_name, storage_group_name))
+
+        return sg['InstanceID']
+
+    def get_sg_instance(self, system_name, sg_instance_id, property_list=None):
         instance_name = self.get_sg_instance_name(system_name, sg_instance_id)
-        return self.smis_base.get_instance(instance_name)
+        return self.smis_base.get_instance(instance_name, property_list=property_list)
 
     def check_storage_group(self, system_name, sg_instance_id):
         return self.get_sg_instance_name(system_name, sg_instance_id) is not None
@@ -85,7 +146,11 @@ class VmaxSmisMasking(object):
         return self.smis_base.list_volumes_in_group(self.get_sg_instance_name(system_name, sg_instance_id))
 
     def list_views_containing_sg(self, system_name, sg_instance_id):
-        return self.smis_base.list_views_for_storage_group(self.get_sg_instance_name(system_name, sg_instance_id))
+        instances = self.smis_base.list_views_for_storage_group(self.get_sg_instance_name(system_name, sg_instance_id))
+        mv_device_ids = []
+        for instance in instances:
+            mv_device_ids.append(instance['DeviceID'])
+        return mv_device_ids
 
     def create_sg(self, system_name, sg_name):
         rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=sg_name,
@@ -108,10 +173,40 @@ class VmaxSmisMasking(object):
 
         return sg_instance_id
 
-    def delete_sg(self, system_name, sg_instance_id):
+    def add_members_sg(self, system_name, sg_instance_id, volume_instances):
+        instance_name = self.get_sg_instance_name(system_name, sg_instance_id)
+        rc, job = self.smis_base.invoke_controller_method('AddMembers', system_name, MaskingGroup=instance_name,
+                                                          Members=volume_instances)
+        if rc != 0:
+            rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
+            if rc != 0:
+                exception_message = "%(name)s: add members to SG failed %(rc)lu, %(error)s." % \
+                                    {'name': str(instance_name),
+                                     'rc': rc,
+                                     'error': errordesc}
+                raise RuntimeError(exception_message)
+
+        return rc
+
+    def remove_members_sg(self, system_name, sg_instance_id, volume_instances):
+        instance_name = self.get_sg_instance_name(system_name, sg_instance_id)
+        rc, job = self.smis_base.invoke_controller_method('RemoveMembers', system_name, MaskingGroup=instance_name,
+                                                          Members=volume_instances)
+        if rc != 0:
+            rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
+            if rc != 0:
+                exception_message = "%(name)s: remove members from SG failed %(rc)lu, %(error)s." % \
+                                    {'name': str(instance_name),
+                                     'rc': rc,
+                                     'error': errordesc}
+                raise RuntimeError(exception_message)
+
+        return rc
+
+    def delete_sg(self, system_name, sg_instance_id, force=True):
         instance_name = self.get_sg_instance_name(system_name, sg_instance_id)
         rc, job = self.smis_base.invoke_controller_method('DeleteGroup', system_name,
-                                                          MaskingGroup=instance_name, Force=True)
+                                                          MaskingGroup=instance_name, Force=force)
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -176,10 +271,14 @@ class VmaxSmisMasking(object):
     def list_views_containing_pg(self, system_name, pg_instance_id):
         return self.smis_base.list_views_for_port_group(self.get_pg_instance_name(system_name, pg_instance_id))
 
-    def create_pg(self, system_name, pg_name, director_names):
-        rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=pg_name,
-                                                          Type=self.smis_base.get_ecom_int(PORTGROUPTYPE, '16'),
-                                                          Members=director_names)
+    def create_pg(self, system_name, pg_name, director_names=None):
+        if director_names is not None and len(director_names) > 0:
+            rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=pg_name,
+                                                              Type=self.smis_base.get_ecom_int(PORTGROUPTYPE, '16'),
+                                                              Members=director_names)
+        else:
+            rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=pg_name,
+                                                              Type=self.smis_base.get_ecom_int(PORTGROUPTYPE, '16'))
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -197,10 +296,40 @@ class VmaxSmisMasking(object):
 
         return pg_instance_id
 
-    def delete_pg(self, system_name, pg_instance_id):
+    def add_members_pg(self, system_name, pg_instance_id, director_names):
+        instance_name = self.get_pg_instance_name(system_name, pg_instance_id)
+        rc, job = self.smis_base.invoke_controller_method('AddMembers', system_name, MaskingGroup=instance_name,
+                                                          Members=director_names)
+        if rc != 0:
+            rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
+            if rc != 0:
+                exception_message = "%(name)s: add members to PG failed %(rc)lu, %(error)s." % \
+                                    {'name': str(instance_name),
+                                     'rc': rc,
+                                     'error': errordesc}
+                raise RuntimeError(exception_message)
+
+        return rc
+
+    def remove_members_pg(self, system_name, pg_instance_id, director_names):
+        instance_name = self.get_pg_instance_name(system_name, pg_instance_id)
+        rc, job = self.smis_base.invoke_controller_method('RemoveMembers', system_name, MaskingGroup=instance_name,
+                                                          Members=director_names)
+        if rc != 0:
+            rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
+            if rc != 0:
+                exception_message = "%(name)s: remove members from PG failed %(rc)lu, %(error)s." % \
+                                    {'name': str(instance_name),
+                                     'rc': rc,
+                                     'error': errordesc}
+                raise RuntimeError(exception_message)
+
+        return rc
+
+    def delete_pg(self, system_name, pg_instance_id, force=True):
         instance_name = self.get_pg_instance_name(system_name, pg_instance_id)
         rc, job = self.smis_base.invoke_controller_method('DeleteGroup', system_name,
-                                                          MaskingGroup=instance_name, Force=True)
+                                                          MaskingGroup=instance_name, Force=force)
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -250,7 +379,7 @@ class VmaxSmisMasking(object):
         return self.get_sg_instance_name(system_name, ig_instance_id) is not None
 
     def list_initiators_in_ig(self, system_name, ig_instance_id):
-        return self.smis_base.list_initiators_in_group(self.get_ig_instance_name(system_name, ig_instance_id))
+        return self.smis_base.find_initiators_in_group(self.get_ig_instance_name(system_name, ig_instance_id))
 
     def list_views_containing_ig(self, system_name, ig_instance_id):
         return self.smis_base.list_views_for_initiator_group(self.get_ig_instance_name(system_name, ig_instance_id))

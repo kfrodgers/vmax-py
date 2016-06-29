@@ -68,14 +68,14 @@ class VmaxSmisBase(object):
             exception_message = "Cannot connect to ECOM server."
             raise RuntimeError(RuntimeError=exception_message)
 
-    def _list(self, name, property_list=None):
+    def enumerate_instances(self, name, property_list=None):
         if property_list is None:
             instances = self.conn.EnumerateInstances(name)
         else:
             instances = self.conn.EnumerateInstances(name, PropertyList=property_list)
         return instances
 
-    def _list_names(self, name):
+    def enumerate_instance_names(self, name):
         return self.conn.EnumerateInstanceNames(name)
 
     def associator_names(self, name, result_class=None, assoc_class=None):
@@ -126,50 +126,50 @@ class VmaxSmisBase(object):
         rc_code, rc_dict = self.conn.InvokeMethod(method_name, config_service, **kwargs)
         return rc_code, rc_dict
 
-    def list_management_server_software_identity(self):
-        return self._list('EMC_ManagementServerSoftwareIdentity')
+    def list_management_server_software_identity(self, property_list=None):
+        return self.enumerate_instances('EMC_ManagementServerSoftwareIdentity', property_list=property_list)
 
-    def list_storage_software_identity(self):
-        return self._list('Symm_StorageSystemSoftwareIdentity')
+    def list_storage_software_identity(self, property_list=None):
+        return self.enumerate_instances('Symm_StorageSystemSoftwareIdentity', property_list=property_list)
 
     def list_storage_configuration_services(self):
-        return self._list_names('EMC_StorageConfigurationService')
+        return self.enumerate_instance_names('EMC_StorageConfigurationService')
 
     def list_controller_configuration_services(self):
-        return self._list_names('EMC_ControllerConfigurationService')
+        return self.enumerate_instance_names('EMC_ControllerConfigurationService')
 
     def list_element_composition_services(self):
-        return self._list_names('Symm_ElementCompositionService')
+        return self.enumerate_instance_names('Symm_ElementCompositionService')
 
     def list_storage_relocation_services(self):
-        return self._list_names('Symm_StorageRelocationService')
+        return self.enumerate_instance_names('Symm_StorageRelocationService')
 
     def list_storage_volumes_names(self):
-        return self._list_names('Symm_StorageVolume')
+        return self.enumerate_instance_names('Symm_StorageVolume')
 
     def list_storage_volumes(self, property_list=None):
-        return self._list('Symm_StorageVolume', property_list=property_list)
+        return self.enumerate_instances('Symm_StorageVolume', property_list=property_list)
 
-    def list_storage_hardwareid_services(self):
-        return self._list('EMC_StorageHardwareIDManagementService')
+    def list_storage_hardwareid_services(self, property_list=None):
+        return self.enumerate_instances('EMC_StorageHardwareIDManagementService', property_list=property_list)
 
     def list_replication_services(self):
-        return self._list_names('EMC_ReplicationService')
+        return self.enumerate_instance_names('EMC_ReplicationService')
 
     def list_se_storage_synchronized_sv_sv(self):
-        return self._list_names('SE_StorageSynchronized_SV_SV')
+        return self.enumerate_instance_names('SE_StorageSynchronized_SV_SV')
 
     def list_se_group_synchronized_rg_rg(self):
-        return self._list_names('SE_GroupSynchronized_RG_RG')
+        return self.enumerate_instance_names('SE_GroupSynchronized_RG_RG')
 
     def list_masking_views(self):
-        return self._list_names('Symm_LunMaskingView')
+        return self.enumerate_instance_names('Symm_LunMaskingView')
 
     def list_storage_group_in_view(self, masking_view):
         groups = self.associator_names(masking_view, result_class='CIM_DeviceMaskingGroup')
         if len(groups) == 0:
             raise ReferenceError('%s: No storage group in view' % str(masking_view))
-        return groups[0]
+        return groups
 
     def list_views_for_storage_group(self, storage_group):
         return self.associator_names(storage_group, result_class='Symm_LunMaskingView')
@@ -178,7 +178,7 @@ class VmaxSmisBase(object):
         groups = self.associator_names(masking_view, result_class='CIM_InitiatorMaskingGroup')
         if len(groups) == 0:
             raise ReferenceError('%s: No initiator group in view' % str(masking_view))
-        return groups[0]
+        return groups
 
     def list_views_for_initiator_group(self, initiator_group):
         return self.associator_names(initiator_group, result_class='Symm_LunMaskingView')
@@ -187,13 +187,16 @@ class VmaxSmisBase(object):
         groups = self.associator_names(masking_view, result_class='CIM_TargetMaskingGroup')
         if len(groups) == 0:
             raise ReferenceError('%s: No port group in view' % str(masking_view))
-        return groups[0]
+        return groups
 
     def list_views_for_port_group(self, port_group):
         return self.associator_names(port_group, result_class='Symm_LunMaskingView')
 
-    def list_storage_groups(self):
-        return self._list_names('CIM_DeviceMaskingGroup')
+    def list_storage_group_names(self):
+        return self.enumerate_instance_names('CIM_DeviceMaskingGroup')
+
+    def list_storage_groups(self, property_list=None):
+        return self.enumerate_instances('CIM_DeviceMaskingGroup', property_list=property_list)
 
     def list_storage_endpoints(self, system_name):
         endpoints = []
@@ -205,21 +208,21 @@ class VmaxSmisBase(object):
 
     def list_storage_processor_systems(self, system_name):
         proc_names = []
-        names = self._list_names('Symm_StorageProcessorSystem')
+        names = self.enumerate_instance_names('Symm_StorageProcessorSystem')
         for name in names:
             if system_name in name['Name']:
                 proc_names.append(name)
         return proc_names
 
     def list_storage_fc_enpoints(self):
-        return self._list_names('Symm_FCSCSIProtocolEndpoint')
+        return self.enumerate_instance_names('Symm_FCSCSIProtocolEndpoint')
 
     def list_storage_iscsi_enpoints(self):
         endpoints = []
-        iscsi_endpoints = self._list_names('Symm_iSCSIProtocolEndpoint')
+        iscsi_endpoints = self.enumerate_instance_names('Symm_iSCSIProtocolEndpoint')
         if iscsi_endpoints is not None:
             endpoints.extend(iscsi_endpoints)
-        iscsi_endpoints = self._list_names('Symm_VirtualiSCSIProtocolEndpoint')
+        iscsi_endpoints = self.enumerate_instance_names('Symm_VirtualiSCSIProtocolEndpoint')
         if iscsi_endpoints is not None:
             endpoints.extend(iscsi_endpoints)
         return endpoints
@@ -231,19 +234,19 @@ class VmaxSmisBase(object):
         return self.associator_names(storage_group, result_class='CIM_StorageVolume')
 
     def list_port_groups(self):
-        return self._list_names('CIM_TargetMaskingGroup')
+        return self.enumerate_instance_names('CIM_TargetMaskingGroup')
 
     def list_ports_in_group(self, port_group):
         return self.associator_names(port_group, result_class='CIM_SCSIProtocolEndpoint')
 
     def list_initiator_groups(self):
-        return self._list_names('CIM_InitiatorMaskingGroup')
+        return self.enumerate_instance_names('CIM_InitiatorMaskingGroup')
 
-    def list_initiators_in_group(self, storage_group):
-        return self.associator_names(storage_group, result_class='SE_StorageHardwareID')
+    def list_all_initiators(self):
+        return self.enumerate_instance_names('SE_StorageHardwareID')
 
     def list_storage_system_instance_names(self):
-        return self._list_names('EMC_StorageSystem')
+        return self.enumerate_instance_names('EMC_StorageSystem')
 
     def list_storage_system_names(self):
         systems = self.list_storage_system_instance_names()
@@ -253,16 +256,19 @@ class VmaxSmisBase(object):
         return names
 
     def list_replication_service_capabilities(self):
-        return self._list_names('CIM_ReplicationServiceCapabilities')
+        return self.enumerate_instance_names('CIM_ReplicationServiceCapabilities')
 
     def list_tier_policy_service(self):
-        return self._list_names('Symm_TierPolicyService')
+        return self.enumerate_instance_names('Symm_TierPolicyService')
+
+    def find_initiators_in_group(self, initiator_group):
+        return self.associator_names(initiator_group, result_class='SE_StorageHardwareID')
+
+    def find_initiator_groups(self, initiator):
+        return self.associator_names(initiator, result_class='CIM_InitiatorMaskingGroup')
 
     def find_storgae_extents(self, instance):
         return self.associator_names(instance, result_class='CIM_StorageExtent')
-
-    def find_storage_hardware_ids(self, instance):
-        return self.associator_names(instance, result_class='EMC_StorageHardwareID')
 
     def find_virtual_provisioning_pool(self, system_instance_name):
         return self.associator_names(system_instance_name, result_class='EMC_VirtualProvisioningPool')
@@ -296,7 +302,7 @@ class VmaxSmisBase(object):
         return found_tier_policy_service
 
     def find_storage_system(self, system_name):
-        storage_systems = self._list_names('EMC_StorageSystem')
+        storage_systems = self.enumerate_instance_names('EMC_StorageSystem')
         for storage_system in storage_systems:
             if system_name == storage_system['Name']:
                 break
@@ -326,31 +332,18 @@ class VmaxSmisBase(object):
         major_version = 0
         minor_version = 0
 
-        management_ids = self.list_management_server_software_identity()
+        management_ids = self.list_management_server_software_identity(property_list=['MajorVersion', 'MinorVersion'])
         if len(management_ids) > 0:
-            for properties in management_ids[0].items():
-                if properties[0] == 'MajorVersion':
-                    cim_properties = properties[1]
-                    major_version = int(cim_properties)
-                if properties[0] == 'MinorVersion':
-                    cim_properties = properties[1]
-                    minor_version = int(cim_properties)
-                if major_version > 0 and minor_version > 0:
-                    break
+            major_version = management_ids[0]['MajorVersion']
+            minor_version = management_ids[0]['MinorVersion']
 
         return (major_version == 8 and minor_version >= 1) or (major_version > 8)
 
     def is_array_v3(self, system_name):
-        software_ids = self.list_storage_software_identity()
+        software_ids = self.list_storage_software_identity(property_list=['InstanceID', 'EMCEnginuityFamily'])
         for software_id in software_ids:
             if system_name in software_id['InstanceID']:
-                for properties in software_id.items():
-                    if properties[0] == 'EMCEnginuityFamily':
-                        cim_properties = properties[1]
-                        ucode_family = int(cim_properties)
-                        break
-                else:
-                        raise ReferenceError('%s: EMCEnginuityFamily property not found' % system_name)
+                ucode_family = software_id['EMCEnginuityFamily']
                 break
         else:
             raise ReferenceError('%s: item not found' % system_name)

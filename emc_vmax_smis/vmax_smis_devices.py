@@ -12,7 +12,7 @@ class VmaxSmisDevices(object):
         self.devices_refresh = False
         self.devices = None
 
-        self.interval = 300
+        self.interval = 180
         self.refresh_time = 0
 
         for attr in kwargs.keys():
@@ -29,7 +29,9 @@ class VmaxSmisDevices(object):
 
     def _load_all_devices(self):
         if self.devices_refresh or self.devices is None:
-            self.devices = self.smis_base.list_storage_volumes_names()
+            self.devices = self.smis_base.list_storage_volumes(property_list=['ElementName', 'SystemName',
+                                                                              'DeviceID', 'SpaceConsumed',
+                                                                              'ConsumableBlocks', 'BlockSize'])
             self.devices_refresh = False
 
         return self.devices
@@ -44,58 +46,45 @@ class VmaxSmisDevices(object):
         return volume
 
     def get_volume_by_name(self, system_name, volume_name):
-        for volume in self.smis_base.list_storage_volumes(property_list=['ElementName', 'SystemName', 'DeviceID']):
-            if volume['SystemName'] == system_name and volume['ElementName'] == unicode(volume_name):
+        for volume in self._load_all_devices():
+            if volume['SystemName'] == system_name and volume['ElementName'] == volume_name:
                 break
         else:
             raise ReferenceError('%s - %s: volume not found' % (system_name, volume_name))
 
-        return self.get_volume_instance(system_name, volume['DeviceID'])
+        return volume
 
     def list_all_devices(self, system_name):
         devices = []
-        for o in self._load_all_devices():
-            if o['SystemName'] == system_name:
-                devices.append(str(o['DeviceID']))
+        for volume in self._load_all_devices():
+            if volume['SystemName'] == system_name:
+                devices.append(volume['DeviceID'])
         return devices
+
+    def list_all_devices_by_name(self, system_name):
+        device_names = []
+        for volume in self._load_all_devices():
+            if volume['SystemName'] == system_name:
+                device_names.append(volume['ElementName'])
+        return device_names
 
     def get_space_consumed(self, system_name, device_id):
         volume = self.get_volume_instance(system_name, device_id)
+        return volume['SpaceConsumed']
 
-        space_consumed = -1L
-        unit_names = self.smis_base.get_unit_names(volume)
-        for unit_name in unit_names:
-            properties_list = unit_name.properties.items()
-            for properties in properties_list:
-                if properties[0] == 'SpaceConsumed':
-                    cim_properties = properties[1]
-                    space_consumed = long(cim_properties.value)
-                    break
-            if space_consumed >= 0L:
-                break
-
-        return space_consumed
+    def get_volume_name(self, system_name, device_id):
+        volume = self.get_volume_instance(system_name, device_id)
+        return volume['ElementName']
 
     def get_extended_volume(self, system_name, device_id, property_list=None):
-        return self.smis_base.get_instance(self.get_volume_instance(system_name, device_id),
-                                           property_list=property_list)
+        volume = self.get_volume_instance(system_name, device_id)
+        return self.smis_base.get_instance(volume.path, property_list=property_list)
 
     def get_volume_size(self, system_name, device_id):
-        extended_volume = self.get_extended_volume(system_name, device_id,
-                                                   property_list=['ConsumableBlocks', 'BlockSize'])
+        volume = self.get_volume_instance(system_name, device_id)
 
-        block_size = 0L
-        num_blocks = 0L
-        properties_list = extended_volume.properties.items()
-        for properties in properties_list:
-            if properties[0] == 'ConsumableBlocks':
-                cim_properties = properties[1]
-                num_blocks = long(cim_properties.value)
-            if properties[0] == 'BlockSize':
-                cim_properties = properties[1]
-                block_size = long(cim_properties.value)
-            if block_size > 0 and num_blocks > 0:
-                break
+        block_size = volume['ConsumableBlocks']
+        num_blocks = volume['BlockSize']
 
         return num_blocks * block_size
 
@@ -146,7 +135,8 @@ class VmaxSmisDevices(object):
         return pool_instance_ids
 
     def get_storage_group(self, system_name, device_id):
-        instances = self.smis_base.list_storage_groups_from_volume(self.get_volume_instance(system_name, device_id))
+        volume = self.get_volume_instance(system_name, device_id)
+        instances = self.smis_base.list_storage_groups_from_volume(volume.path)
         groups = []
         for i in instances:
             groups.append(i['InstanceID'])
@@ -175,7 +165,7 @@ class VmaxSmisDevices(object):
         volume_instance = self.get_volume_instance(system_name, device_id)
 
         rc, job = self.smis_base.invoke_storage_method('ReturnElementsToStoragePool', system_name,
-                                                       TheElements=[volume_instance])
+                                                       TheElements=[volume_instance.path])
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:

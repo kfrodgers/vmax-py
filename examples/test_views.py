@@ -7,7 +7,7 @@ if __name__ == '__main__':
 
     masking_views = o.list_masking_views()
     for mv in masking_views:
-        print str(mv)
-        print '\t' + str(o.list_initiator_group_in_view(mv))
-        print '\t' + str(o.list_port_group_in_view(mv))
-        print '\t' + str(o.list_storage_group_in_view(mv))
+        print str(mv['DeviceID'])
+        print '\t' + str(o.list_initiator_group_in_view(mv)[0]['InstanceID'])
+        print '\t' + str(o.list_port_group_in_view(mv)[0]['InstanceID'])
+        print '\t' + str(o.list_storage_group_in_view(mv)[0]['InstanceID'])

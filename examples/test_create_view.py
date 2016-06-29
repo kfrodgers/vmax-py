@@ -15,15 +15,13 @@ if __name__ == '__main__':
 
     volume_name = 'kfr-volume-0001'
     pool_id = smis_devices.list_storage_pools(system_name)[0]
+    print str(pool_id) + ' pool selected'
     try:
         device_instance = smis_devices.get_volume_by_name(system_name, volume_name)
         print str(device_instance) + ' already exists'
     except Exception as e:
-        device_instance = smis_devices.create_volume(system_name, volume_name, pool_id, 1024*1024)
-
-    device_id = device_instance['DeviceId']
-    rc = smis_devices.destroy_volume(system_name, device_id)
-    print rc
+        device_instance = smis_devices.create_volume(system_name, volume_name, pool_id, 1024*1024*1024)
+        print str(device_instance) + ' created'
 
     sg_name = 'kfr-test-sg'
     sg_list = smis_masking.list_sg_instance_ids(system_name)
@@ -35,9 +33,17 @@ if __name__ == '__main__':
             break
     else:
         new_id = smis_masking.create_sg(system_name, sg_name)
-        print str(new_id)
+        print str(new_id) + ' created'
+        rc = smis_masking.add_members_sg(system_name, new_id, [device_instance])
+        print 'add returned ' + str(rc)
+        rc = smis_masking.remove_members_sg(system_name, new_id, [device_instance])
+        print 'remove returned ' + str(rc)
         rc = smis_masking.delete_sg(system_name, new_id)
-        print rc
+        print 'delete sg ' + str(rc)
+
+    device_id = device_instance['DeviceId']
+    rc = smis_devices.destroy_volume(system_name, device_id)
+    print rc
 
     pg_name = 'kfr-test-pg'
     pg_list = smis_masking.list_pg_instance_ids(system_name)

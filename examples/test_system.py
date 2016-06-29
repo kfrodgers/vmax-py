@@ -5,6 +5,7 @@ from emc_vmax_smis.vmax_smis_base import VmaxSmisBase
 
 if __name__ == '__main__':
     o = VmaxSmisBase(host='10.108.247.22', port=5989, use_ssl=True)
+    print '\tValid SE Version == ' + str(o.check_se_version())
 
     print '\nlist_storage_configuration_services()'
     stor = o.list_storage_configuration_services()
@@ -58,4 +59,11 @@ if __name__ == '__main__':
     for s in stor:
         for item in s.items():
             print '\t' + str(item)
+
+    print '\nlist_all_initiators()'
+    stor = o.list_all_initiators()
+    for s in stor:
+        print '\t' + str(s)
+        for ig in o.find_initiator_groups(s):
+            print '\t\t' + str(ig)
 
