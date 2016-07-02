@@ -109,12 +109,22 @@ class VmaxSmisBase(object):
             refs = None
         return refs
 
-    def get_instance(self, instance, property_list=None, local_only=False):
+    def get_instance(self, instance_name, property_list=None, local_only=False):
         if property_list is None or len(property_list) == 0:
-            instance = self.conn.GetInstance(instance, LocalOnly=local_only)
+            instance = self.conn.GetInstance(instance_name, LocalOnly=local_only)
         else:
-            instance = self.conn.GetInstance(instance, PropertyList=property_list, LocalOnly=local_only)
+            instance = self.conn.GetInstance(instance_name, PropertyList=property_list, LocalOnly=local_only)
         return instance
+
+    def modify_instance(self, instance, property_list=None):
+        if property_list is None or len(property_list) == 0:
+            self.conn.ModifyInstance(instance)
+        else:
+            self.conn.ModifyInstance(instance, PropertyList=property_list)
+
+    def invoke_method(self, method_name, service, **kwargs):
+        rc_code, rc_dict = self.conn.InvokeMethod(method_name, service, **kwargs)
+        return rc_code, rc_dict
 
     def invoke_controller_method(self, method_name, system_name, **kwargs):
         config_service = self.find_controller_configuration_service(system_name)
@@ -138,6 +148,9 @@ class VmaxSmisBase(object):
     def list_controller_configuration_services(self):
         return self.enumerate_instance_names('EMC_ControllerConfigurationService')
 
+    def list_storage_hardwareid_services(self, property_list=None):
+        return self.enumerate_instance_names('EMC_StorageHardwareIDManagementService')
+
     def list_element_composition_services(self):
         return self.enumerate_instance_names('Symm_ElementCompositionService')
 
@@ -149,9 +162,6 @@ class VmaxSmisBase(object):
 
     def list_storage_volumes(self, property_list=None):
         return self.enumerate_instances('Symm_StorageVolume', property_list=property_list)
-
-    def list_storage_hardwareid_services(self, property_list=None):
-        return self.enumerate_instances('EMC_StorageHardwareIDManagementService', property_list=property_list)
 
     def list_replication_services(self):
         return self.enumerate_instance_names('EMC_ReplicationService')
@@ -321,6 +331,15 @@ class VmaxSmisBase(object):
 
     def find_storage_configuration_service(self, system_name):
         config_services = self.list_storage_configuration_services()
+        for config_service in config_services:
+            if system_name == config_service['SystemName']:
+                break
+        else:
+            raise ReferenceError('%s: item not found' % system_name)
+        return config_service
+
+    def find_storage_hardwareid_service(self, system_name):
+        config_services = self.list_storage_hardwareid_services()
         for config_service in config_services:
             if system_name == config_service['SystemName']:
                 break

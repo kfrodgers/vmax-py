@@ -3,8 +3,9 @@
 import vmax_smis_base
 import time
 
-STORAGEGROUPTYPE = 4
-PORTGROUPTYPE = 3
+STORAGE_GROUP_TYPE = 4
+PORT_GROUP_TYPE = 3
+INITIATOR_GROUP_TYPE = 2
 
 
 class VmaxSmisMasking(object):
@@ -154,7 +155,7 @@ class VmaxSmisMasking(object):
 
     def create_sg(self, system_name, sg_name):
         rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=sg_name,
-                                                          Type=self.smis_base.get_ecom_int(STORAGEGROUPTYPE, '16'),
+                                                          Type=self.smis_base.get_ecom_int(STORAGE_GROUP_TYPE, '16'),
                                                           DeleteWhenBecomesUnassociated=False)
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
@@ -274,15 +275,15 @@ class VmaxSmisMasking(object):
     def create_pg(self, system_name, pg_name, director_names=None):
         if director_names is not None and len(director_names) > 0:
             rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=pg_name,
-                                                              Type=self.smis_base.get_ecom_int(PORTGROUPTYPE, '16'),
+                                                              Type=self.smis_base.get_ecom_int(PORT_GROUP_TYPE, '16'),
                                                               Members=director_names)
         else:
             rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=pg_name,
-                                                              Type=self.smis_base.get_ecom_int(PORTGROUPTYPE, '16'))
+                                                              Type=self.smis_base.get_ecom_int(PORT_GROUP_TYPE, '16'))
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
-                exception_message = "%(name)s: create failed %(rc)lu, %(error)s." % \
+                exception_message = "%(name)s: create PG failed %(rc)lu, %(error)s." % \
                                     {'name': pg_name,
                                      'rc': rc,
                                      'error': errordesc}
@@ -383,3 +384,129 @@ class VmaxSmisMasking(object):
 
     def list_views_containing_ig(self, system_name, ig_instance_id):
         return self.smis_base.list_views_for_initiator_group(self.get_ig_instance_name(system_name, ig_instance_id))
+
+    def _storage_hardware_type(self, www_or_iqn):
+        type_id = 0
+        try:
+            int(www_or_iqn, 16)
+            type_id = 2
+        except Exception:
+            if 'iqn' in www_or_iqn.lower():
+                type_id = 5
+        if type_id == 0:
+            raise RuntimeError("Cannot determine the hardware type.")
+        return self.smis_base.get_ecom_int(type_id, '16')
+
+    def create_storage_hardware_id(self, system_name, wwn_or_iqn):
+
+        config_service = self.smis_base.find_storage_hardwareid_service(system_name)
+        rc, job = self.smis_base.invoke_method('CreateStorageHardwareID', config_service,
+                                               StorageID=wwn_or_iqn, IDType=self._storage_hardware_type(wwn_or_iqn))
+        if 'HardwareID' in job:
+            hardware_id_list = job['HardwareID']
+        else:
+            message = "CreateStorageHardwareID failed. initiator: %(initiator)s, rc=%(rc)d, job=%(job)s." % \
+                      {'initiator': wwn_or_iqn, 'rc': rc, 'job': unicode(job)}
+            raise RuntimeError(message)
+        return hardware_id_list
+
+    def delete_storage_hardware_id(self, system_name, hardware_instance):
+        config_service = self.smis_base.find_storage_hardwareid_service(system_name)
+        rc, job = self.smis_base.invoke_method('DeleteStorageHardwareID', config_service,
+                                               HardwareID=hardware_instance)
+        if rc != 0:
+            message = "%(name)s: delete hardware id failed %(rc)lu, %(error)s." % \
+                      {'name': str(hardware_instance), 'rc': rc, 'error': job['ErrorDescription']}
+            raise RuntimeError(message)
+        return rc
+
+    def list_storage_hardware(self):
+        hardware_instances = self.smis_base.list_all_initiators()
+        hardware_names = []
+        for instance in hardware_instances:
+            hardware_names.append(instance['ElementName'])
+        return hardware_names
+
+    def get_storage_hardware_instance(self, hardware_name):
+        hardware_instances = self.smis_base.list_all_initiators()
+        hardware_names = []
+        for instance in hardware_instances:
+            if hardware_name == instance['ElementName']:
+                break
+        else:
+            raise ReferenceError('%s: storage hardware not found' % hardware_name)
+
+        return instance
+
+    def create_ig(self, system_name, ig_name, hardware_names=None):
+        if hardware_names is not None and len(hardware_names) > 0:
+            initiator_names = []
+            for name in hardware_names:
+                initiator_names.append(self.get_storage_hardware_instance(name))
+
+            rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=ig_name,
+                                                              Type=self.smis_base.get_ecom_int(INITIATOR_GROUP_TYPE, '16'),
+                                                              Members=initiator_names)
+        else:
+            rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=ig_name,
+                                                              Type=self.smis_base.get_ecom_int(INITIATOR_GROUP_TYPE, '16'))
+        if rc != 0:
+            rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
+            if rc != 0:
+                exception_message = "%(name)s: create IG failed %(rc)lu, %(error)s." % \
+                                    {'name': ig_name,
+                                     'rc': rc,
+                                     'error': errordesc}
+                raise RuntimeError(exception_message)
+
+        self.ig_refresh = True
+
+        ig_instance_id = None
+        if 'MaskingGroup' in job and 'InstanceID' in job['MaskingGroup']:
+            ig_instance_id = job['MaskingGroup']['InstanceID']
+
+        return ig_instance_id
+
+    def add_members_ig(self, system_name, ig_instance_id, initiator_names):
+        instance_name = self.get_ig_instance_name(system_name, ig_instance_id)
+        rc, job = self.smis_base.invoke_controller_method('AddMembers', system_name, MaskingGroup=instance_name,
+                                                          Members=initiator_names)
+        if rc != 0:
+            rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
+            if rc != 0:
+                exception_message = "%(name)s: add members to IG failed %(rc)lu, %(error)s." % \
+                                    {'name': str(instance_name),
+                                     'rc': rc,
+                                     'error': errordesc}
+                raise RuntimeError(exception_message)
+
+        return rc
+
+    def remove_members_ig(self, system_name, ig_instance_id, initiator_names):
+        instance_name = self.get_ig_instance_name(system_name, ig_instance_id)
+        rc, job = self.smis_base.invoke_controller_method('RemoveMembers', system_name, MaskingGroup=instance_name,
+                                                          Members=initiator_names)
+        if rc != 0:
+            rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
+            if rc != 0:
+                exception_message = "%(name)s: remove members from IG failed %(rc)lu, %(error)s." % \
+                                    {'name': str(instance_name),
+                                     'rc': rc,
+                                     'error': errordesc}
+                raise RuntimeError(exception_message)
+
+        return rc
+
+    def delete_ig(self, system_name, ig_instance_id, force=True):
+        instance_name = self.get_ig_instance_name(system_name, ig_instance_id)
+        rc, job = self.smis_base.invoke_controller_method('DeleteGroup', system_name,
+                                                          MaskingGroup=instance_name, Force=force)
+        if rc != 0:
+            rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
+            if rc != 0:
+                exception_message = "%(name)s: delete IG failed %(rc)lu, %(error)s." % \
+                                    {'name': str(ig_instance_id),
+                                     'rc': rc,
+                                     'error': errordesc}
+                raise RuntimeError(exception_message)
+        return rc

@@ -13,6 +13,17 @@ if __name__ == '__main__':
     system_name = smis_base.list_storage_system_names()[0]
     print str(system_name)
 
+    wwn = 'iqn.1994-05.com.redhat:f3e6b941189b'
+    try:
+        hardware_instance = smis_masking.get_storage_hardware_instance(wwn)
+        print str(wwn) + ' already exists'
+    except Exception as e:
+        hardware_instance = smis_masking.create_storage_hardware_id(system_name, wwn)
+        print str(hardware_instance) + ' created'
+    if hardware_instance is not None:
+        rc = smis_masking.delete_storage_hardware_id(system_name, hardware_instance)
+        print 'delete returned ' + str(rc)
+
     volume_name = 'kfr-volume-0001'
     pool_id = smis_devices.list_storage_pools(system_name)[0]
     print str(pool_id) + ' pool selected'

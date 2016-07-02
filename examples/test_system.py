@@ -64,6 +64,13 @@ if __name__ == '__main__':
     stor = o.list_all_initiators()
     for s in stor:
         print '\t' + str(s)
+        inst = o.get_instance(s)
+        for i in inst.items():
+            print '\t\t' + unicode(i)
         for ig in o.find_initiator_groups(s):
             print '\t\t' + str(ig)
+            inst = o.get_instance(ig)
+            for i in inst.items():
+                print '\t\t\t' + unicode(i)
+
 

@@ -76,6 +76,10 @@ class VmaxSmisDevices(object):
         volume = self.get_volume_instance(system_name, device_id)
         return volume['ElementName']
 
+    def rename_volume(self, volume_instance, new_name):
+        volume_instance['ElementName'] = unicode(new_name)
+        self.smis_base.modify_instance(volume_instance, property_list=['ElementName'])
+
     def get_extended_volume(self, system_name, device_id, property_list=None):
         volume = self.get_volume_instance(system_name, device_id)
         return self.smis_base.get_instance(volume.path, property_list=property_list)
