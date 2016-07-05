@@ -1,13 +1,29 @@
 # Copyright 2016 EMC Corporation
 
 from emc_vmax_smis.vmax_smis_base import VmaxSmisBase
+from emc_vmax_smis.vmax_smis_masking import VmaxSmisMasking
 
 if __name__ == '__main__':
-    o = VmaxSmisBase(host='10.108.247.22', port=5989, use_ssl=True)
+    smis_base = VmaxSmisBase(host='10.108.247.22', port=5989, use_ssl=True)
+    smis_masking = VmaxSmisMasking(smis_base=smis_base)
 
-    masking_views = o.list_masking_views()
-    for mv in masking_views:
-        print str(mv['DeviceID'])
-        print '\t' + str(o.list_initiator_group_in_view(mv)[0]['InstanceID'])
-        print '\t' + str(o.list_port_group_in_view(mv)[0]['InstanceID'])
-        print '\t' + str(o.list_storage_group_in_view(mv)[0]['InstanceID'])
+    systems = smis_base.list_storage_system_names()
+    for s in systems:
+        masking_views = smis_masking.list_mv_instance_ids(s)
+        for mv in masking_views:
+            print str(mv)
+            sgs = smis_masking.list_sgs_in_view(s, mv)
+            for sg in sgs:
+                print '\t' + str(sg)
+                items = smis_masking.list_volumes_in_sg(s, sg)
+                print '\t\t' + str(items)
+            pgs = smis_masking.list_pgs_in_view(s, mv)
+            for pg in pgs:
+                print '\t' + str(pg)
+                items = smis_masking.list_directors_in_pg(s, pg)
+                print '\t\t' + str(items)
+            igs = smis_masking.list_igs_in_view(s, mv)
+            for ig in igs:
+                print '\t' + str(ig)
+                items = smis_masking.list_initiators_in_ig(s, ig)
+                print '\t\t' + str(items)

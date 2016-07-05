@@ -46,8 +46,14 @@ class VmaxSmisDevices(object):
         return volume
 
     def get_volume_instance_name(self, system_name, device_id):
-        volume = self.get_volume_instance(system_name, device_id)
-        return volume.path
+        volume_instance = self.get_volume_instance(system_name, device_id)
+        return volume_instance.path
+
+    def get_volume_instance_names(self, system_name, device_ids):
+        volumes = []
+        for dev in device_ids:
+            volumes.append(self.get_volume_instance_name(system_name, dev))
+        return volumes
 
     def get_volume_by_name(self, system_name, volume_name):
         for volume in self._load_all_devices():
@@ -56,7 +62,7 @@ class VmaxSmisDevices(object):
         else:
             raise ReferenceError('%s - %s: volume not found' % (system_name, volume_name))
 
-        return volume.path
+        return volume['DeviceID']
 
     def list_all_devices(self, system_name):
         devices = []
@@ -168,7 +174,7 @@ class VmaxSmisDevices(object):
         inst_name = self.smis_base.associators(job['job'], result_class='EMC_StorageVolume')
         self.devices_refresh = True
 
-        return inst_name[0].path
+        return inst_name[0]['DeviceID']
 
     def destroy_volume(self, system_name, device_id):
         volume_instance = self.get_volume_instance(system_name, device_id)

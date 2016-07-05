@@ -18,26 +18,19 @@ if __name__ == '__main__':
 
     wwn = u'iqn.1994-05.com.redhat:f3e6b941189b'
     try:
-        hardware_id = smis_masking.get_storage_hardware_instance(wwn)
-        print str(wwn) + ' already exists'
+        hardware_id = smis_masking.get_hba_id(wwn)
+        print str(hardware_id) + ' HBA already exists'
     except ReferenceError:
-        hardware_id = smis_masking.create_storage_hardware_id(system_name, wwn)
-        print str(hardware_id) + ' created'
+        hardware_id = smis_masking.create_hba_id(system_name, wwn)
+        print str(hardware_id) + ' HBA created'
 
     ig_name = u'kfr-test-ig'
     try:
         ig_id = smis_masking.get_ig_by_name(system_name, ig_name)
-        print ig_name + ' already exists'
+        print ig_name + ' IG already exists'
     except ReferenceError:
-        ig_id = smis_masking.create_ig(system_name, ig_name, [wwn])
-        print str(ig_id) + ' created'
-
-    rc = smis_masking.remove_members_ig(system_name, ig_id, [hardware_id])
-    rc = smis_masking.delete_ig(system_name, ig_id)
-    print 'delete IG returned ' + str(rc)
-
-    rc = smis_masking.delete_storage_hardware_id(system_name, hardware_id)
-    print 'delete hardware id returned ' + str(rc)
+        ig_id = smis_masking.create_ig(system_name, ig_name, [hardware_id])
+        print str(ig_id) + ' IG created'
 
     pg_name = u'kfr-test-pg'
     try:
@@ -48,36 +41,41 @@ if __name__ == '__main__':
         pg_id = smis_masking.create_pg(system_name, pg_name, [directors[-1]])
         print str(pg_id) + ' PG created'
 
-    print str(smis_masking.list_directors_in_pg(system_name, pg_id))
-    rc = smis_masking.remove_members_pg(system_name, pg_id, [directors[-1]])
-    rc = smis_masking.delete_pg(system_name, pg_id)
-    print 'delete PG ' + str(rc)
-
-    exit(0)
-
     volume_name = u'kfr-volume-0001'
     try:
-        device_instance = smis_devices.get_volume_by_name(system_name, volume_name)
-        print str(device_instance) + ' already exists'
+        new_device = smis_devices.get_volume_by_name(system_name, volume_name)
+        print str(new_device) + ' volume already exists'
     except ReferenceError:
-        device_instance = smis_devices.create_volume(system_name, volume_name, pool_id, 1024*1024*1024)
-        print str(device_instance) + ' created'
+        new_device = smis_devices.create_volume(system_name, volume_name, pool_id, 1024*1024*1024)
+        print str(new_device) + ' volume created'
 
     sg_name = u'kfr-test-sg'
     try:
         sg_id = smis_masking.get_sg_by_name(system_name, sg_name)
         print sg_name + ' alreay exists'
     except ReferenceError:
-        sg_id = smis_masking.create_sg(system_name, sg_name)
+        device_instances = smis_devices.get_volume_instance_names(system_name, [new_device])
+        sg_id = smis_masking.create_sg(system_name, sg_name, device_instances)
         print str(sg_id) + ' created'
 
-    rc = smis_masking.add_members_sg(system_name, sg_id, [device_instance])
-    print 'add returned ' + str(rc)
-    rc = smis_masking.remove_members_sg(system_name, sg_id, [device_instance])
-    print 'remove returned ' + str(rc)
+    device_ids = smis_masking.list_volumes_in_sg(system_name, sg_id)
+    device_instances = smis_devices.get_volume_instance_names(system_name, device_ids)
+    rc = smis_masking.remove_members_sg(system_name, sg_id, device_instances)
     rc = smis_masking.delete_sg(system_name, sg_id)
-    print 'delete sg ' + str(rc)
+    print 'delete SG ' + str(rc)
 
-    device_id = device_instance['DeviceId']
-    rc = smis_devices.destroy_volume(system_name, device_id)
-    print rc
+    for device_id in device_ids:
+        rc = smis_devices.destroy_volume(system_name, device_id)
+        print 'delete device returned ' + str(rc)
+
+    rc = smis_masking.remove_members_ig(system_name, ig_id, [hardware_id])
+    rc = smis_masking.delete_ig(system_name, ig_id)
+    print 'delete IG returned ' + str(rc)
+
+    rc = smis_masking.delete_hba_id(system_name, hardware_id)
+    print 'delete hardware id returned ' + str(rc)
+
+    members = smis_masking.list_directors_in_pg(system_name, pg_id)
+    rc = smis_masking.remove_members_pg(system_name, pg_id, members)
+    rc = smis_masking.delete_pg(system_name, pg_id)
+    print 'delete PG ' + str(rc)

@@ -172,8 +172,11 @@ class VmaxSmisBase(object):
     def list_se_group_synchronized_rg_rg(self):
         return self.enumerate_instance_names('SE_GroupSynchronized_RG_RG')
 
-    def list_masking_views(self):
+    def list_masking_view_names(self):
         return self.enumerate_instance_names('Symm_LunMaskingView')
+
+    def list_masking_views(self):
+        return self.enumerate_instances('Symm_LunMaskingView')
 
     def list_storage_group_in_view(self, masking_view):
         groups = self.associator_names(masking_view, result_class='CIM_DeviceMaskingGroup')

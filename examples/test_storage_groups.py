@@ -17,7 +17,7 @@ if __name__ == '__main__':
             if len(devices) > 0:
                 print smis_masking.get_sg_name(s, sg)
                 for d in devices:
-                    print '\t' + str(d['DeviceID'])
+                    print '\t' + str(d)
             else:
                 empty_groups.append(sg)
 
@@ -34,5 +34,5 @@ if __name__ == '__main__':
             print smis_masking.get_sg_name(s, sg)
 
         print '\n' + str(s) + ': List Storage Directors'
-        for dir in smis_masking.list_storage_directors(s):
-            print str(dir)
+        for storage_dir in smis_masking.list_storage_directors(s):
+            print str(storage_dir)

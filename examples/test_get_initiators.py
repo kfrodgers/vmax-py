@@ -25,8 +25,7 @@ if __name__ == '__main__':
                 initiators = smis_masking.list_initiators_in_view(system_name, mv)
                 print '\n' + volume_name + ':'
                 for initiator in initiators:
-                    inst = smis_base.get_instance(initiator)
-                    print '\t' + str(inst['StorageID'])
+                    print '\t' + initiator
 
 
 

@@ -53,48 +53,95 @@ class VmaxSmisMasking(object):
         instance_ids = []
         for sg in groups:
             if system_name == sg['SystemName']:
-                instance_ids.append(unicode(sg['DeviceID']))
+                instance_ids.append(sg['DeviceID'])
 
         return instance_ids
 
     def get_mv_instance_name(self, system_name, mv_device_id):
-        instance_names = self._list_all_mvs()
-        for instance_name in instance_names:
-            if system_name == instance_name['SystemName'] and instance_name['DeviceID'] == mv_device_id:
+        mv_instance = self.get_mv_instance(system_name, mv_device_id)
+        return mv_instance.path
+
+    def get_mv_instance(self, system_name, mv_device_id):
+        mv_instances = self._list_all_mvs()
+        for mv_instance in mv_instances:
+            if system_name == mv_instance['SystemName'] and mv_instance['DeviceID'] == mv_device_id:
                 break
         else:
             raise ReferenceError('%s: masking view device id not found' % mv_device_id)
 
-        return instance_name
-
-    def get_mv_instance(self, system_name, mv_device_id, property_list=None):
-        instance_name = self.get_mv_instance_name(system_name, mv_device_id)
-        return self.smis_base.get_instance(instance_name, property_list=property_list)
+        return mv_instance
 
     def list_sgs_in_view(self, system_name, mv_device_id):
-        instance_name = self.get_mv_instance_name(system_name, mv_device_id)
-        return self.smis_base.list_storage_group_in_view(instance_name)
+        sg_ids = []
+        sg_names = self.smis_base.list_storage_group_in_view(self.get_mv_instance_name(system_name, mv_device_id))
+        for sg_name in sg_names:
+            sg_ids.append(sg_name['InstanceID'])
+
+        return sg_ids
 
     def list_pgs_in_view(self, system_name, mv_device_id):
-        instance_name = self.get_mv_instance_name(system_name, mv_device_id)
-        return self.smis_base.list_port_group_in_view(instance_name)
+        pg_ids = []
+        pg_names = self.smis_base.list_port_group_in_view(self.get_mv_instance_name(system_name, mv_device_id))
+        for pg in pg_names:
+            pg_ids.append(pg['InstanceID'])
+
+        return pg_ids
 
     def list_igs_in_view(self, system_name, mv_device_id):
-        instance_name = self.get_mv_instance_name(system_name, mv_device_id)
-        return self.smis_base.list_initiator_group_in_view(instance_name)
+        ig_ids = []
+        ig_names = self.smis_base.list_initiator_group_in_view(self.get_mv_instance_name(system_name, mv_device_id))
+        for ig in ig_names:
+            ig_ids.append(ig['InstanceID'])
+
+        return ig_ids
 
     def list_initiators_in_view(self, system_name, mv_device_id):
-        instance_name = self.get_mv_instance_name(system_name, mv_device_id)
-        return self.smis_base.find_initiators_in_group(instance_name)
+        initiator_ids = []
+        initiator_names = self.smis_base.find_initiators_in_group(self.get_mv_instance_name(system_name, mv_device_id))
+        for names in initiator_names:
+            initiator_ids.append(names['InstanceID'])
 
-    def create_masking_view(self, system_name, masking_view_name, initiator_masking_group,
-                            device_masking_group, target_masking_group):
+        return initiator_ids
+
+    def create_masking_view(self, system_name, mv_name, ig_name, sg_name, pg_name):
+        ig_instance_name = self.get_ig_by_name(system_name, ig_name)
+        sg_instance_name = self.get_sg_by_name(system_name, sg_name)
+        pg_instance_name = self.get_pg_by_name(system_name, pg_name)
         rc, job = self.smis_base.invoke_controller_method('CreateMaskingView', system_name,
-                                                          ElementName=masking_view_name,
-                                                          InitiatorMaskingGroup=initiator_masking_group,
-                                                          DeviceMaskingGroup=device_masking_group,
-                                                          TargetMaskingGroup=target_masking_group)
-        return rc, job
+                                                          ElementName=mv_name,
+                                                          InitiatorMaskingGroup=ig_instance_name,
+                                                          DeviceMaskingGroup=sg_instance_name,
+                                                          TargetMaskingGroup=pg_instance_name)
+        if rc != 0:
+            rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
+            if rc != 0:
+                exception_message = "%(name)s: CreateMaskingView failed %(rc)lu, %(error)s." % \
+                                    {'name': mv_name,
+                                     'rc': rc,
+                                     'error': errordesc}
+                raise RuntimeError(exception_message)
+
+        self.mv_refresh = True
+
+        mv_instance_id = None
+        if 'MaskingGroup' in job and 'InstanceID' in job['MaskingGroup']:
+            mv_instance_id = job['MaskingGroup']['InstanceID']
+
+        return mv_instance_id
+
+    def delete_masking_view(self, system_name, mv_instance_id, force=True):
+        instance_name = self.get_mv_instance_name(system_name, mv_instance_id)
+        rc, job = self.smis_base.invoke_controller_method('DeleteMaskingView', system_name,
+                                                          ProtocolController=instance_name, Force=force)
+        if rc != 0:
+            rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
+            if rc != 0:
+                exception_message = "%(name)s: DeleteMaskingView failed, %(rc)lu, %(error)s." % \
+                                    {'name': str(mv_instance_id),
+                                     'rc': rc,
+                                     'error': errordesc}
+                raise RuntimeError(exception_message)
+        return rc
 
     def _list_all_sgs(self):
         self._reset()
@@ -129,23 +176,25 @@ class VmaxSmisMasking(object):
 
     def get_sg_instance(self, system_name, sg_instance_id):
         sg_instances = self._list_all_sgs()
-        for instance_name in sg_instances:
-            if system_name in instance_name['InstanceID'] and instance_name['InstanceID'] == sg_instance_id:
+        for sg_instance in sg_instances:
+            if system_name in sg_instance['InstanceID'] and sg_instance['InstanceID'] == sg_instance_id:
                 break
         else:
             raise ReferenceError('%s: storage group instance id not found' % sg_instance_id)
 
-        return instance_name
+        return sg_instance
 
     def get_sg_instance_name(self, system_name, sg_instance_id):
-        instance_name = self.get_sg_instance(system_name, sg_instance_id)
-        return instance_name.path
-
-    def check_storage_group(self, system_name, sg_instance_id):
-        return self.get_sg_instance_name(system_name, sg_instance_id) is not None
+        sg_instance = self.get_sg_instance(system_name, sg_instance_id)
+        return sg_instance.path
 
     def list_volumes_in_sg(self, system_name, sg_instance_id):
-        return self.smis_base.list_volumes_in_group(self.get_sg_instance_name(system_name, sg_instance_id))
+        device_ids = []
+        volumes = self.smis_base.list_volumes_in_group(self.get_sg_instance_name(system_name, sg_instance_id))
+        for volume in volumes:
+            device_ids.append(volume['DeviceID'])
+
+        return device_ids
 
     def list_views_containing_sg(self, system_name, sg_instance_id):
         instances = self.smis_base.list_views_for_storage_group(self.get_sg_instance_name(system_name, sg_instance_id))
@@ -154,10 +203,16 @@ class VmaxSmisMasking(object):
             mv_device_ids.append(instance['DeviceID'])
         return mv_device_ids
 
-    def create_sg(self, system_name, sg_name):
-        rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=sg_name,
-                                                          Type=VmaxSmisBase.get_ecom_int(STORAGE_GROUP_TYPE, '16'),
-                                                          DeleteWhenBecomesUnassociated=False)
+    def create_sg(self, system_name, sg_name, volume_instances=None):
+        if volume_instances is not None and len(volume_instances) > 0:
+            rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=sg_name,
+                                                              Type=VmaxSmisBase.get_ecom_int(STORAGE_GROUP_TYPE, '16'),
+                                                              Members=volume_instances,
+                                                              DeleteWhenBecomesUnassociated=False)
+        else:
+            rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=sg_name,
+                                                              Type=VmaxSmisBase.get_ecom_int(STORAGE_GROUP_TYPE, '16'),
+                                                              DeleteWhenBecomesUnassociated=False)
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -226,8 +281,28 @@ class VmaxSmisMasking(object):
             if e['CreationClassName'] == u'Symm_FCSCSIProtocolEndpoint' or \
                     e['CreationClassName'] == u'Symm_iSCSIProtocolEndpoint' or \
                     e['CreationClassName'] == u'Symm_VirtualiSCSIProtocolEndpoint':
-                directors.append(e)
+                directors.append(e['SystemName'])
         return directors
+
+    def get_storage_director_by_name(self, system_name, dir_name):
+        endpoints = self.smis_base.list_storage_endpoints(system_name)
+        for endpoint in endpoints:
+            if (endpoint['CreationClassName'] == u'Symm_FCSCSIProtocolEndpoint' or
+                    endpoint['CreationClassName'] == u'Symm_iSCSIProtocolEndpoint' or
+                    endpoint['CreationClassName'] == u'Symm_VirtualiSCSIProtocolEndpoint') and \
+                    endpoint['SystemName'] == dir_name:
+                break
+        else:
+            raise ReferenceError('%s: director not found' % dir_name)
+
+        return endpoint
+
+    def get_storage_directors(self, system_name, director_names):
+        endpoints = []
+        for name in director_names:
+            endpoints.append(self.get_storage_director_by_name(system_name, name))
+
+        return endpoints
 
     def _list_all_pgs(self):
         self._reset()
@@ -274,20 +349,23 @@ class VmaxSmisMasking(object):
 
         return instance
 
-    def check_port_group(self, system_name, pg_instance_id):
-        return self.get_pg_instance_name(system_name, pg_instance_id) is not None
-
     def list_directors_in_pg(self, system_name, pg_instance_id):
-        return self.smis_base.list_ports_in_group(self.get_pg_instance_name(system_name, pg_instance_id))
+        dir_names = []
+        endpoints = self.smis_base.list_ports_in_group(self.get_pg_instance_name(system_name, pg_instance_id))
+        for endpoint in endpoints:
+            dir_names.append(endpoint['SystemName'])
+
+        return dir_names
 
     def list_views_containing_pg(self, system_name, pg_instance_id):
         return self.smis_base.list_views_for_port_group(self.get_pg_instance_name(system_name, pg_instance_id))
 
     def create_pg(self, system_name, pg_name, director_names=None):
         if director_names is not None and len(director_names) > 0:
+            members = self.get_storage_directors(system_name, director_names)
             rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=pg_name,
                                                               Type=VmaxSmisBase.get_ecom_int(PORT_GROUP_TYPE, '16'),
-                                                              Members=director_names)
+                                                              Members=members)
         else:
             rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=pg_name,
                                                               Type=VmaxSmisBase.get_ecom_int(PORT_GROUP_TYPE, '16'))
@@ -310,8 +388,9 @@ class VmaxSmisMasking(object):
 
     def add_members_pg(self, system_name, pg_instance_id, director_names):
         instance_name = self.get_pg_instance_name(system_name, pg_instance_id)
+        members = self.get_storage_directors(system_name, director_names)
         rc, job = self.smis_base.invoke_controller_method('AddMembers', system_name, MaskingGroup=instance_name,
-                                                          Members=director_names)
+                                                          Members=members)
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -325,8 +404,9 @@ class VmaxSmisMasking(object):
 
     def remove_members_pg(self, system_name, pg_instance_id, director_names):
         instance_name = self.get_pg_instance_name(system_name, pg_instance_id)
+        members = self.get_storage_directors(system_name, director_names)
         rc, job = self.smis_base.invoke_controller_method('RemoveMembers', system_name, MaskingGroup=instance_name,
-                                                          Members=director_names)
+                                                          Members=members)
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -381,7 +461,7 @@ class VmaxSmisMasking(object):
         else:
             raise ReferenceError('%s: storage group instance id not found' % ig_name)
 
-        return instance.path
+        return instance['InstanceID']
 
     def get_ig_instance_name(self, system_name, ig_instance_id):
         instance = self.get_ig_instance(system_name, ig_instance_id)
@@ -393,21 +473,23 @@ class VmaxSmisMasking(object):
             if system_name in instance['InstanceID'] and instance['InstanceID'] == ig_instance_id:
                 break
         else:
-            raise ReferenceError('%s: storage group instance id not found' % ig_instance_id)
+            raise ReferenceError('%s: IG instance id not found' % ig_instance_id)
 
         return instance
 
-    def check_initiator_group(self, system_name, ig_instance_id):
-        return self.get_sg_instance_name(system_name, ig_instance_id) is not None
-
     def list_initiators_in_ig(self, system_name, ig_instance_id):
-        return self.smis_base.find_initiators_in_group(self.get_ig_instance_name(system_name, ig_instance_id))
+        hba_ids = []
+        initiators = self.smis_base.find_initiators_in_group(self.get_ig_instance_name(system_name, ig_instance_id))
+        for initiator in initiators:
+            hba_ids.append(initiator['InstanceID'])
+
+        return hba_ids
 
     def list_views_containing_ig(self, system_name, ig_instance_id):
         return self.smis_base.list_views_for_initiator_group(self.get_ig_instance_name(system_name, ig_instance_id))
 
     @staticmethod
-    def _storage_hardware_type(www_or_iqn):
+    def _hba_type(www_or_iqn):
         type_id = 0
         try:
             int(www_or_iqn, 16)
@@ -419,37 +501,43 @@ class VmaxSmisMasking(object):
             raise RuntimeError("Cannot determine the hardware type.")
         return VmaxSmisBase.get_ecom_int(type_id, '16')
 
-    def create_storage_hardware_id(self, system_name, wwn_or_iqn):
-
+    def create_hba_id(self, system_name, wwn_or_iqn):
         config_service = self.smis_base.find_storage_hardwareid_service(system_name)
         rc, job = self.smis_base.invoke_method('CreateStorageHardwareID', config_service,
-                                               StorageID=wwn_or_iqn, IDType=self._storage_hardware_type(wwn_or_iqn))
-        if 'HardwareID' in job:
-            hardware_id_list = job['HardwareID']
-        else:
-            message = "CreateStorageHardwareID failed. initiator: %(initiator)s, rc=%(rc)d, job=%(job)s." % \
-                      {'initiator': wwn_or_iqn, 'rc': rc, 'job': unicode(job)}
-            raise RuntimeError(message)
-        return hardware_id_list
+                                               StorageID=wwn_or_iqn, IDType=self._hba_type(wwn_or_iqn))
+        if rc != 0:
+            rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
+            if rc != 0:
+                message = "CreateStorageHardwareID failed. initiator: %(initiator)s, rc=%(rc)d, job=%(job)s." % \
+                          {'initiator': wwn_or_iqn, 'rc': rc, 'job': unicode(job)}
+                raise RuntimeError(message)
 
-    def delete_storage_hardware_id(self, system_name, hardware_instance):
+        hba_id = None
+        if 'HardwareID' in job:
+            hba_id = job['HardwareID']['InstanceID']
+
+        return hba_id
+
+    def delete_hba_id(self, system_name, hba_id):
         config_service = self.smis_base.find_storage_hardwareid_service(system_name)
         rc, job = self.smis_base.invoke_method('DeleteStorageHardwareID', config_service,
-                                               HardwareID=hardware_instance)
+                                               HardwareID=self.get_hba_instance(hba_id))
         if rc != 0:
-            message = "%(name)s: delete hardware id failed %(rc)lu, %(error)s." % \
-                      {'name': str(hardware_instance), 'rc': rc, 'error': job['ErrorDescription']}
-            raise RuntimeError(message)
+            rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
+            if rc != 0:
+                message = "%(name)s: DeleteStorageHardwareID failed %(rc)lu, %(error)s." % \
+                          {'name': str(hba_id), 'rc': rc, 'error': job['ErrorDescription']}
+                raise RuntimeError(message)
         return rc
 
-    def list_storage_hardware(self):
+    def list_hba_ids(self):
         hardware_instances = self.smis_base.list_all_initiators()
         hardware_names = []
         for instance in hardware_instances:
-            hardware_names.append(instance['ElementName'])
+            hardware_names.append(instance['InstanceID'])
         return hardware_names
 
-    def get_storage_hardware_instance(self, hardware_name):
+    def get_hba_id(self, hardware_name):
         hardware_instances = self.smis_base.list_all_initiators()
         for instance in hardware_instances:
             if hardware_name == instance['ElementName']:
@@ -457,17 +545,30 @@ class VmaxSmisMasking(object):
         else:
             raise ReferenceError('%s: storage hardware not found' % hardware_name)
 
+        return instance['InstanceID']
+
+    def get_hba_instance(self, hba_id):
+        hardware_instances = self.smis_base.list_all_initiators()
+        for instance in hardware_instances:
+            if hba_id == instance['InstanceID']:
+                break
+        else:
+            raise ReferenceError('%s: storage hardware not found' % hba_id)
+
         return instance.path
 
-    def create_ig(self, system_name, ig_name, hardware_names=None):
-        if hardware_names is not None and len(hardware_names) > 0:
-            initiator_names = []
-            for name in hardware_names:
-                initiator_names.append(self.get_storage_hardware_instance(name))
+    def get_hba_instances(self, hba_ids):
+        hba_names = []
+        for hba_id in hba_ids:
+            hba_names.append(self.get_hba_instance(hba_id))
+        return hba_names
 
+    def create_ig(self, system_name, ig_name, hba_ids=None):
+        if hba_ids is not None and len(hba_ids) > 0:
             ecom_type = VmaxSmisBase.get_ecom_int(INITIATOR_GROUP_TYPE, '16')
             rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=ig_name,
-                                                              Type=ecom_type, Members=initiator_names)
+                                                              Type=ecom_type,
+                                                              Members=self.get_hba_instances(hba_ids))
         else:
             ecom_type = VmaxSmisBase.get_ecom_int(INITIATOR_GROUP_TYPE, '16')
             rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=ig_name,
@@ -489,10 +590,10 @@ class VmaxSmisMasking(object):
 
         return ig_instance_id
 
-    def add_members_ig(self, system_name, ig_instance_id, hardware_ids):
+    def add_members_ig(self, system_name, ig_instance_id, hba_ids):
         instance_name = self.get_ig_instance_name(system_name, ig_instance_id)
         rc, job = self.smis_base.invoke_controller_method('AddMembers', system_name, MaskingGroup=instance_name,
-                                                          Members=hardware_ids)
+                                                          Members=self.get_hba_instances(hba_ids))
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -504,10 +605,10 @@ class VmaxSmisMasking(object):
 
         return rc
 
-    def remove_members_ig(self, system_name, ig_instance_id, hardware_ids):
+    def remove_members_ig(self, system_name, ig_instance_id, hba_ids):
         instance_name = self.get_ig_instance_name(system_name, ig_instance_id)
         rc, job = self.smis_base.invoke_controller_method('RemoveMembers', system_name, MaskingGroup=instance_name,
-                                                          Members=hardware_ids)
+                                                          Members=self.get_hba_instances(hba_ids))
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:

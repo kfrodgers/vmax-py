@@ -63,11 +63,11 @@ if __name__ == '__main__':
     print '\nlist_all_initiators()'
     stor = o.list_all_initiators()
     for s in stor:
-        print '\t' + str(s)
-        inst = o.get_instance(s)
+        print '\t' + str(s.path)
+        inst = o.get_instance(s.path)
         for i in inst.items():
             print '\t\t' + unicode(i)
-        for ig in o.find_initiator_groups(s):
+        for ig in o.find_initiator_groups(s.path):
             print '\t\t' + str(ig)
             inst = o.get_instance(ig)
             for i in inst.items():
