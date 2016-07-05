@@ -13,18 +13,34 @@ if __name__ == '__main__':
     system_name = smis_base.list_storage_system_names()[0]
     print str(system_name)
 
-    wwn = 'iqn.1994-05.com.redhat:f3e6b941189b'
+    wwn = u'iqn.1994-05.com.redhat:f3e6b941189b'
     try:
-        hardware_instance = smis_masking.get_storage_hardware_instance(wwn)
+        hardware_id = smis_masking.get_storage_hardware_instance(wwn)
         print str(wwn) + ' already exists'
     except Exception as e:
-        hardware_instance = smis_masking.create_storage_hardware_id(system_name, wwn)
-        print str(hardware_instance) + ' created'
-    if hardware_instance is not None:
-        rc = smis_masking.delete_storage_hardware_id(system_name, hardware_instance)
-        print 'delete returned ' + str(rc)
+        hardware_id = smis_masking.create_storage_hardware_id(system_name, wwn)
+        print str(hardware_id) + ' created'
 
-    volume_name = 'kfr-volume-0001'
+    ig_name = u'kfr-test-ig'
+    try:
+        ig_id = smis_masking.get_ig_by_name(system_name, ig_name)
+        print ig_name + ' already exists'
+    except Exception:
+        ig_id = smis_masking.create_ig(system_name, ig_name, [wwn])
+        print str(ig_id) + ' created'
+
+    if ig_id is not None:
+        rc = smis_masking.remove_members_ig(system_name, ig_id, [hardware_id])
+        rc = smis_masking.delete_ig(system_name, ig_id)
+        print 'delete IG returned ' + str(rc)
+
+    if hardware_id is not None:
+        rc = smis_masking.delete_storage_hardware_id(system_name, hardware_id)
+        print 'delete hardware id returned ' + str(rc)
+
+    exit(0)
+
+    volume_name = u'kfr-volume-0001'
     pool_id = smis_devices.list_storage_pools(system_name)[0]
     print str(pool_id) + ' pool selected'
     try:
@@ -34,23 +50,20 @@ if __name__ == '__main__':
         device_instance = smis_devices.create_volume(system_name, volume_name, pool_id, 1024*1024*1024)
         print str(device_instance) + ' created'
 
-    sg_name = 'kfr-test-sg'
-    sg_list = smis_masking.list_sg_instance_ids(system_name)
-    for sg in sg_list:
-        if sg_name in sg:
-            print sg_name + ' alreay exists, deleting'
-            rc = smis_masking.delete_sg(system_name, sg)
-            print rc
-            break
-    else:
-        new_id = smis_masking.create_sg(system_name, sg_name)
-        print str(new_id) + ' created'
-        rc = smis_masking.add_members_sg(system_name, new_id, [device_instance])
-        print 'add returned ' + str(rc)
-        rc = smis_masking.remove_members_sg(system_name, new_id, [device_instance])
-        print 'remove returned ' + str(rc)
-        rc = smis_masking.delete_sg(system_name, new_id)
-        print 'delete sg ' + str(rc)
+    sg_name = u'kfr-test-sg'
+    try:
+        sg_id = smis_masking.get_sg_by_name(system_name, sg_name)
+        print sg_name + ' alreay exists'
+    except Exception as e:
+        sg_id = smis_masking.create_sg(system_name, sg_name)
+        print str(sg_id) + ' created'
+
+    rc = smis_masking.add_members_sg(system_name, sg_id, [device_instance])
+    print 'add returned ' + str(rc)
+    rc = smis_masking.remove_members_sg(system_name, sg_id, [device_instance])
+    print 'remove returned ' + str(rc)
+    rc = smis_masking.delete_sg(system_name, sg_id)
+    print 'delete sg ' + str(rc)
 
     device_id = device_instance['DeviceId']
     rc = smis_devices.destroy_volume(system_name, device_id)

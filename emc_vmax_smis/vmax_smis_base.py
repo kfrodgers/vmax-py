@@ -249,10 +249,16 @@ class VmaxSmisBase(object):
     def list_ports_in_group(self, port_group):
         return self.associator_names(port_group, result_class='CIM_SCSIProtocolEndpoint')
 
-    def list_initiator_groups(self):
+    def list_initiator_group_namess(self):
         return self.enumerate_instance_names('CIM_InitiatorMaskingGroup')
 
+    def list_initiator_groups(self):
+        return self.enumerate_instances('CIM_InitiatorMaskingGroup')
+
     def list_all_initiators(self):
+        return self.enumerate_instances('SE_StorageHardwareID')
+
+    def list_all_initiator_namess(self):
         return self.enumerate_instance_names('SE_StorageHardwareID')
 
     def list_storage_system_instance_names(self):

@@ -9,10 +9,17 @@ if __name__ == '__main__':
 
     systems = smis_base.list_storage_system_names()
     for s in systems:
+        last = None
         unreferenced = []
         nohbas = []
+
+        hardware_ids = smis_masking.list_storage_hardware()
+        for h in hardware_ids:
+            print str(h)
+
         groups = smis_masking.list_ig_instance_ids(s)
         for ig in groups:
+            last = ig
             print smis_masking.get_ig_name(s, ig)
             views = smis_masking.list_views_containing_ig(s, ig)
             if len(views) == 0:
@@ -23,6 +30,12 @@ if __name__ == '__main__':
                 nohbas.append(ig)
             for hba in hbas:
                 print '\t' + str(hba)
+
+        if last is not None:
+            print '\n' + smis_masking.get_ig_name(s, last)
+            ig_inst = smis_masking.get_ig_instance(s, last)
+            for i in ig_inst.items():
+                print '\t' + str(i)
 
         print '\nEmpty Groups'
         for ig in nohbas:
