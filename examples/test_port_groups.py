@@ -14,17 +14,21 @@ if __name__ == '__main__':
             print str(e)
 
         print '\n'
+        last = ''
         unrefed_groups = []
 
         groups = smis_masking.list_pg_instance_ids(s)
         for pg in groups:
-            print smis_masking.get_pg_name(s, pg)
+            last = smis_masking.get_pg_name(s, pg)
+            print last
             for port in smis_masking.list_directors_in_pg(s, pg):
                 print '\t' + str(port)
 
             views = smis_masking.list_views_containing_pg(s, pg)
             if len(views) == 0:
                 unrefed_groups.append(pg)
+
+        print '\n' + str(smis_masking.get_pg_by_name(s, last))
 
         print '\nPort Groups not in View'
         for pg in unrefed_groups:

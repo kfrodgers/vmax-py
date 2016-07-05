@@ -250,19 +250,29 @@ class VmaxSmisMasking(object):
         pg_instance = self.get_pg_instance(system_name, pg_instance_id)
         return pg_instance['ElementName']
 
+    def get_pg_by_name(self, system_name, pg_name):
+        pg_instances = self._list_all_pgs()
+        for instance in pg_instances:
+            if system_name in instance['InstanceID'] and instance['ElementName'] == pg_name:
+                break
+        else:
+            raise ReferenceError('%s: port group instance id not found' % pg_name)
+
+        return instance['InstanceID']
+
     def get_pg_instance_name(self, system_name, pg_instance_id):
-        instance_names = self._list_all_pgs()
-        for instance_name in instance_names:
-            if system_name in instance_name['InstanceID'] and instance_name['InstanceID'] == pg_instance_id:
+        pg_instance = self.get_pg_instance(system_name, pg_instance_id)
+        return pg_instance.path
+
+    def get_pg_instance(self, system_name, pg_instance_id):
+        pg_instances = self._list_all_pgs()
+        for instance in pg_instances:
+            if system_name in instance['InstanceID'] and instance['InstanceID'] == pg_instance_id:
                 break
         else:
             raise ReferenceError('%s: port group instance id not found' % pg_instance_id)
 
-        return instance_name
-
-    def get_pg_instance(self, system_name, pg_instance_id):
-        instance_name = self.get_pg_instance_name(system_name, pg_instance_id)
-        return self.smis_base.get_instance(instance_name)
+        return instance
 
     def check_port_group(self, system_name, pg_instance_id):
         return self.get_pg_instance_name(system_name, pg_instance_id) is not None

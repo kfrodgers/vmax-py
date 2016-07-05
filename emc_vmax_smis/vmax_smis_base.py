@@ -148,7 +148,7 @@ class VmaxSmisBase(object):
     def list_controller_configuration_services(self):
         return self.enumerate_instance_names('EMC_ControllerConfigurationService')
 
-    def list_storage_hardwareid_services(self, property_list=None):
+    def list_storage_hardwareid_services(self):
         return self.enumerate_instance_names('EMC_StorageHardwareIDManagementService')
 
     def list_element_composition_services(self):
@@ -244,6 +244,9 @@ class VmaxSmisBase(object):
         return self.associator_names(storage_group, result_class='CIM_StorageVolume')
 
     def list_port_groups(self):
+        return self.enumerate_instances('CIM_TargetMaskingGroup')
+
+    def list_port_group_names(self):
         return self.enumerate_instance_names('CIM_TargetMaskingGroup')
 
     def list_ports_in_group(self, port_group):
