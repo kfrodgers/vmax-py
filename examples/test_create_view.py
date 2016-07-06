@@ -1,12 +1,14 @@
 # Copyright 2016 EMC Corporation
 
+from os import getenv
 from emc_vmax_smis.vmax_smis_base import VmaxSmisBase
 from emc_vmax_smis.vmax_smis_masking import VmaxSmisMasking
 from emc_vmax_smis.vmax_smis_devices import VmaxSmisDevices
 
 
 if __name__ == '__main__':
-    smis_base = VmaxSmisBase(host='10.108.247.22', port=5989, use_ssl=True)
+    host = getenv("ECOM_IP", default="10.108.247.22")
+    smis_base = VmaxSmisBase(host=host, port=5989, use_ssl=True)
     smis_masking = VmaxSmisMasking(smis_base=smis_base)
     smis_devices = VmaxSmisDevices(smis_base=smis_base)
 

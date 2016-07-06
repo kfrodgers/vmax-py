@@ -1,12 +1,14 @@
 # Copyright 2016 EMC Corporation
 
+from os import getenv
 from emc_vmax_smis.vmax_smis_base import VmaxSmisBase
 from emc_vmax_smis.vmax_smis_devices import VmaxSmisDevices
 from emc_vmax_smis.vmax_smis_masking import VmaxSmisMasking
 
 
 if __name__ == '__main__':
-    smis_base = VmaxSmisBase(host='10.108.247.22', port=5989, use_ssl=True)
+    host = getenv("ECOM_IP", default="10.108.247.22")
+    smis_base = VmaxSmisBase(host=host, port=5989, use_ssl=True)
     smis_devices = VmaxSmisDevices(smis_base=smis_base)
     smis_masking = VmaxSmisMasking(smis_base=smis_base)
 
@@ -15,8 +17,8 @@ if __name__ == '__main__':
 
     volume_names = smis_devices.list_all_devices_by_name(system_name)
     for volume_name in volume_names[-100:]:
-        volume_inst = smis_devices.get_volume_by_name(system_name, volume_name)
-        storage_groups = smis_devices.get_storage_group(system_name, volume_inst['DeviceID'])
+        volume_id = smis_devices.get_volume_by_name(system_name, volume_name)
+        storage_groups = smis_devices.get_storage_group(system_name, volume_id)
         if len(storage_groups) == 0:
             continue
         for sg_inst_id in storage_groups:
