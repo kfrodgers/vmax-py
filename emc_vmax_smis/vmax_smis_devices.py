@@ -156,6 +156,14 @@ class VmaxSmisDevices(object):
             groups.append(i['InstanceID'])
         return groups
 
+    def get_pool_name(self, system_name, device_id):
+        volume = self.get_volume_instance(system_name, device_id)
+        vpools = self.smis_base.find_virtual_provisioning_pool(volume.path)
+        pool = None
+        if vpools is not None and len(vpools) == 1:
+            pool = vpools[0]['InstanceID']
+        return pool
+
     def create_volume(self, system_name, volume_name, pool_instance_id, volume_size):
         pool_instance_name = self._find_pool_instance_name(system_name, pool_instance_id)
         rc, job = self.smis_base.invoke_storage_method('CreateOrModifyElementFromStoragePool', system_name,

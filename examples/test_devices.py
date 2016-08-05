@@ -19,9 +19,10 @@ if __name__ == '__main__':
 
         devs = smis_devices.list_all_devices(sys)
         print 'Total count = ' + str(len(devs))
-        for d in devs[-200:]:
+        for d in devs[-50:]:
             sg_names = smis_devices.get_storage_group(system_name=sys, device_id=d)
             if sg_names is None or len(sg_names) == 0:
                 name = smis_devices.get_volume_name(system_name=sys, device_id=d)
                 size = str(smis_devices.get_volume_size(system_name=sys, device_id=d))
-                print '\t' + d + ': ' + name + ' (sizeBytes=' + size + ')'
+                pool = smis_devices.get_pool_name(system_name=sys, device_id=d)
+                print '\t' + d + ': ' + name + ' \t(sizeBytes=' + size + ') \t (inPool=' + str(pool) + ')'
