@@ -138,7 +138,7 @@ class VmaxSmisDevices(object):
         else:
             raise ReferenceError('%s: pool instance not found' % pool_instance_id)
 
-        return name
+        return name.path
 
     def list_storage_pools(self, system_name):
         pool_instance_names = self._list_pool_instance_names(system_name)
@@ -158,10 +158,13 @@ class VmaxSmisDevices(object):
 
     def get_pool_name(self, system_name, device_id):
         volume = self.get_volume_instance(system_name, device_id)
-        vpools = self.smis_base.find_virtual_provisioning_pool(volume.path)
+        if self.smis_base.is_array_v3(system_name):
+            storage_pools = self.smis_base.find_srp_storage_pool(volume.path)
+        else:
+            storage_pools = self.smis_base.find_virtual_provisioning_pool(volume.path)
         pool = None
-        if vpools is not None and len(vpools) == 1:
-            pool = vpools[0]['InstanceID']
+        if storage_pools is not None and len(storage_pools) == 1:
+            pool = storage_pools[0]['PoolID']
         return pool
 
     def create_volume(self, system_name, volume_name, pool_instance_id, volume_size):

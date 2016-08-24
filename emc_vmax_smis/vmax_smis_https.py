@@ -15,13 +15,10 @@
 
 import base64
 import os
-import socket
 import ssl
 import string
 import struct
 
-from eventlet import patcher
-import OpenSSL
 import six
 from six.moves import http_client
 from six.moves import urllib
@@ -31,6 +28,14 @@ try:
     pywbemAvailable = True
 except ImportError:
     pywbemAvailable = False
+
+from eventlet import patcher
+if patcher.is_monkey_patched('socket'):
+    from eventlet.green import socket
+    from eventlet.green.OpenSSL import SSL
+else:
+    import socket
+    from OpenSSL import SSL
 
 
 def to_bytes(s):
@@ -67,7 +72,7 @@ class OpenSSLConnectionDelegator(object):
     a delegator must be used.
     """
     def __init__(self, *args, **kwargs):
-        self.connection = OpenSSL.SSL.Connection(*args, **kwargs)
+        self.connection = SSL.Connection(*args, **kwargs)
 
     def __getattr__(self, name):
         return getattr(self.connection, name)
@@ -149,7 +154,7 @@ class HTTPSConnection(six.moves.http_client.HTTPSConnection):
                         depth, preverify_ok):
         if x509.has_expired():
             msg = "SSL Certificate expired on %s." % x509.get_notAfter()
-            raise pywbem.cim_http.AuthError(msg)
+            raise pywbem.cim_http.timeoutAuthError(msg)
 
         if depth == 0 and preverify_ok:
             # We verify that the host matches against the last
@@ -161,13 +166,13 @@ class HTTPSConnection(six.moves.http_client.HTTPSConnection):
 
     def set_context(self):
         """Set up the OpenSSL context."""
-        self.context = OpenSSL.SSL.Context(OpenSSL.SSL.SSLv23_METHOD)
+        self.context = SSL.Context(SSL.SSLv23_METHOD)
 
         if self.insecure is not True:
-            self.context.set_verify(OpenSSL.SSL.VERIFY_PEER,
+            self.context.set_verify(SSL.VERIFY_PEER,
                                     self.verify_callback)
         else:
-            self.context.set_verify(OpenSSL.SSL.VERIFY_NONE,
+            self.context.set_verify(SSL.VERIFY_NONE,
                                     lambda *args: True)
 
         if self.cert_file:
@@ -224,7 +229,7 @@ class HTTPSConnection(six.moves.http_client.HTTPSConnection):
 
 def wbem_request(url, data, creds, headers=None, debug=0, x509=None,
                  verify_callback=None, ca_certs=None,
-                 no_verification=False):
+                 no_verification=False, timeout=None):
     """Send request over HTTP.
 
     Send XML data over HTTP to the specified url. Return the

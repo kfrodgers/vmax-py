@@ -40,7 +40,9 @@ class VmaxSmisBase(object):
                 updated_pywbem = True
             else:
                 updated_pywbem = False
-            pywbem.cim_http.wbem_request = vmax_smis_https.wbem_request
+            setattr(pywbem.cim_http, 'wbem_request', vmax_smis_https.wbem_request)
+            if hasattr(pywbem.cim_operations, 'wbem_request'):
+                setattr(pywbem.cim_operations, 'wbem_request', vmax_smis_https.wbem_request)
             if updated_pywbem:
                 self.conn = pywbem.WBEMConnection(
                     self.url,
@@ -283,6 +285,9 @@ class VmaxSmisBase(object):
     def list_tier_policy_service(self):
         return self.enumerate_instance_names('Symm_TierPolicyService')
 
+    def list_tier_policy_rule(self):
+        return self.enumerate_instance_names('Symm_TierPolicyRule')
+
     def find_initiators_in_group(self, initiator_group):
         return self.associator_names(initiator_group, result_class='SE_StorageHardwareID')
 
@@ -293,10 +298,10 @@ class VmaxSmisBase(object):
         return self.associator_names(instance, result_class='CIM_StorageExtent')
 
     def find_virtual_provisioning_pool(self, system_instance_name):
-        return self.associator_names(system_instance_name, result_class='EMC_VirtualProvisioningPool')
+        return self.associators(system_instance_name, result_class='EMC_VirtualProvisioningPool')
 
     def find_srp_storage_pool(self, system_instance_name):
-        return self.associator_names(system_instance_name, result_class='Symm_SRPStoragePool')
+        return self.associators(system_instance_name, result_class='Symm_SRPStoragePool')
 
     def find_volume_metas(self, volume):
         return self.associator_names(volume, result_class='EMC_Meta')
