@@ -329,7 +329,7 @@ class VmaxSmisBase(object):
         return found_tier_policy_service
 
     def find_storage_system(self, system_name):
-        storage_systems = self.enumerate_instance_names('EMC_StorageSystem')
+        storage_systems = self.list_storage_system_instance_names()
         for storage_system in storage_systems:
             if system_name == storage_system['Name']:
                 break
