@@ -70,6 +70,12 @@ class VmaxSmisBase(object):
             exception_message = "Cannot connect to ECOM server."
             raise RuntimeError(RuntimeError=exception_message)
 
+    def dump_instance(self, instance):
+        output = str(instance) + '\n'
+        for item in instance.items():
+            output += '\t' + str(item) + '\n'
+        return output
+
     def enumerate_instances(self, name, property_list=None):
         if property_list is None:
             instances = self.conn.EnumerateInstances(name)
