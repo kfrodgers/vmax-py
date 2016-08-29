@@ -12,8 +12,8 @@ USAGE = ('Usage: {0} '
          '-h <host>|--host <host> '
          '-s <symm_id>|--sid <symm_id> '
          '[-u <username>|--user <username>] '
-         '[-p <password>|--password <password>]\n'
-         '[-S|--use_ssl]'.format(PROGNAME))
+         '[-p <password>|--password <password>] '
+         '[-S|--use_ssl]\n'.format(PROGNAME))
 
 
 def usage():
@@ -24,7 +24,7 @@ def usage():
 def main():
     try:
         options, remainder = getopt.getopt(sys.argv[1:], 'h:s:u:p:S',
-                                           ['host', 'sid', 'user', 'password', 'use-ssl'])
+                                           ['host=', 'sid=', 'user=', 'password=', 'use_ssl'])
     except getopt.GetoptError as err:
         sys.stderr.write('{0!s}\n'.format(err))
         usage()
@@ -44,7 +44,7 @@ def main():
             user = arg
         elif opt in ('-p', '--password'):
             password = arg
-        elif opt in ('S', '--use_ssl'):
+        elif opt in ('-S', '--use_ssl'):
             use_ssl = True
             port = 5989
         else:
