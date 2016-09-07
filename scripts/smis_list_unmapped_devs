@@ -12,7 +12,6 @@ USAGE = ('Usage: {0} '
          '-s <symm_id>|--sid <symm_id> '
          '[-u <username>|--user <username>] '
          '[-p <password>|--password <password>] '
-         '[-m or -U|--mapped or --unmapped]'
          '[-n <name>|--name=<name>] [-S|--use_ssl]\n'.format(PROGNAME))
 
 
@@ -23,9 +22,8 @@ def usage():
 
 def main():
     try:
-        options, remainder = getopt.getopt(sys.argv[1:], 'h:s:u:p:n:mUS',
-                                           ['host=', 'sid=', 'user=', 'password=', 'name=',
-                                            'mapped', 'unmapped', 'use_ssl'])
+        options, remainder = getopt.getopt(sys.argv[1:], 'h:s:u:p:n:S',
+                                           ['host=', 'sid=', 'user=', 'password=', 'name=', 'use_ssl'])
     except getopt.GetoptError as err:
         sys.stderr.write('{0!s}\n'.format(err))
         usage()
@@ -35,8 +33,6 @@ def main():
     user = os.getenv('SMIS_USER', 'admin')
     password = os.getenv('SMIS_PASSWORD', '#1Password')
     name = None
-    mapped_only = False
-    unmapped_only = False
     use_ssl = False
     port = 5988
     for opt, arg in options:
@@ -50,10 +46,6 @@ def main():
             password = arg
         elif opt in ('-n', '--name'):
             name = arg
-        elif opt in ('-m', '--mapped') and unmapped_only is False:
-            mapped_only = True
-        elif opt in ('-U', '--unmapped') and mapped_only is False:
-            unmapped_only = True
         elif opt in ('-S', '--use_ssl'):
             use_ssl = True
             port = 5989
@@ -74,11 +66,10 @@ def main():
     for dev_id in smis_devices.list_all_devices(system_name):
         volume = smis_devices.get_volume_instance(system_name, dev_id)
         if (name is None or volume['ElementName'].startswith(name)) \
-                and (mapped_only is False or volume['EMCIsMapped'] is True) \
-                and (unmapped_only is False or volume['EMCIsMapped'] is False):
-            print str(dev_id) + '\tName=' + volume['ElementName'] + \
-                  '\tIsMapped=' + str(volume['EMCIsMapped']) + \
-                  '\tIsComposite=' + str(volume['IsComposite'])
+                and volume['EMCIsMapped'] is False and volume['IsComposite'] is False:
+            storage_groups = smis_devices.get_storage_group(system_name, dev_id)
+            if len(storage_groups) == 0:
+                print str(dev_id) + '\tName=' + volume['ElementName']
 
 if __name__ == '__main__':
     try:

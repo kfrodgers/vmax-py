@@ -34,7 +34,7 @@ setup(
     keywords='vmax, pywbem, python',
     packages=find_packages(exclude=['test*']),
     scripts=['scripts/smis_list_devs', 'scripts/smis_list_igs', 'scripts/smis_list_mvs',
-             'scripts/smis_list_pgs', 'scripts/smis_list_sgs'],
+             'scripts/smis_list_pgs', 'scripts/smis_list_sgs', 'scripts/smis_list_unmapped_devs'],
     install_requires=install_requires,
     data_files=[]
 )
