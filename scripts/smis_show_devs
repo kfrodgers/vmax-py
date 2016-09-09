@@ -4,7 +4,7 @@
 import os
 import sys
 import getopt
-from emc_vmax_smis.vmax_smis_masking import VmaxSmisMasking
+from emc_vmax_smis.vmax_smis_devices import VmaxSmisDevices
 
 PROGNAME = os.path.basename(sys.argv[0])
 USAGE = ('Usage: {0} '
@@ -52,21 +52,24 @@ def main():
     if host is None or sid is None:
         usage()
 
-    smis_masking = VmaxSmisMasking(host=host, port=port, user=user, passwd=password, use_ssl=use_ssl)
+    smis_devices = VmaxSmisDevices(host=host, port=port, user=user, passwd=password, use_ssl=use_ssl)
 
-    for system_name in smis_masking.smis_base.list_storage_system_names():
+    for system_name in smis_devices.smis_base.list_storage_system_names():
         if system_name.endswith(sid):
             break
     else:
         raise ReferenceError('%s: symmetrix id not found' % sid)
 
-    for pg in smis_masking.list_pg_instance_ids(system_name):
-        print smis_masking.get_pg_name(system_name, pg)
-        dirs = smis_masking.list_directors_in_pg(system_name, pg)
-        if len(dirs) > 0:
-            for d in dirs:
-                print '\t' + str(d)
-
+    for dev_id in remainder:
+        while len(dev_id) < 5:
+            dev_id = '0' + dev_id
+        print dev_id.upper() + ':'
+        try:
+            volume_props = smis_devices.get_volume_properties(system_name, dev_id.upper())
+            for prop in sorted(volume_props.keys()):
+                print '\t' + str(prop) + ' = ' + str(volume_props[prop])
+        except ReferenceError:
+            print '\tVolume not found.'
 
 if __name__ == '__main__':
     try:

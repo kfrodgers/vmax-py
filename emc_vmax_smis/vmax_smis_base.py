@@ -171,6 +171,12 @@ class VmaxSmisBase(object):
     def list_storage_volumes(self, property_list=None):
         return self.enumerate_instances('Symm_StorageVolume', property_list=property_list)
 
+    def list_virtual_provisioning_pools(self):
+        return self.enumerate_instance_names('EMC_VirtualProvisioningPool')
+
+    def list_srp_storage_pools(self):
+        return self.enumerate_instance_names('Symm_SRPStoragePool')
+
     def list_replication_services(self):
         return self.enumerate_instance_names('EMC_ReplicationService')
 

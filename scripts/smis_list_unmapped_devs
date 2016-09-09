@@ -66,10 +66,11 @@ def main():
     for dev_id in smis_devices.list_all_devices(system_name):
         volume = smis_devices.get_volume_instance(system_name, dev_id)
         if (name is None or volume['ElementName'].startswith(name)) \
-                and volume['EMCIsMapped'] is False and volume['IsComposite'] is False:
+                and volume['EMCIsMapped'] is False and volume['IsComposite'] is False \
+                and volume['Usage'] not in [12, 14, 18]:
             storage_groups = smis_devices.get_storage_group(system_name, dev_id)
             if len(storage_groups) == 0:
-                print str(dev_id) + '\tName=' + volume['ElementName']
+                print 'Device Id=' + str(dev_id) + '\tName=' + volume['ElementName']
 
 if __name__ == '__main__':
     try:

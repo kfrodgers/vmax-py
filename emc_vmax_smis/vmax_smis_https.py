@@ -229,7 +229,7 @@ class HTTPSConnection(six.moves.http_client.HTTPSConnection):
 
 def wbem_request(url, data, creds, headers=None, debug=0, x509=None,
                  verify_callback=None, ca_certs=None,
-                 no_verification=False, timeout=None):
+                 no_verification=False, timeout=None, recorder=None):
     """Send request over HTTP.
 
     Send XML data over HTTP to the specified url. Return the
