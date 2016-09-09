@@ -70,7 +70,7 @@ def main():
                 and volume['Usage'] not in [12, 14, 18]:
             storage_groups = smis_devices.get_storage_group(system_name, dev_id)
             if len(storage_groups) == 0:
-                print 'Device Id=' + str(dev_id) + '\tName=' + volume['ElementName']
+                print str(dev_id) + '\tName=' + volume['ElementName']
 
 if __name__ == '__main__':
     try:

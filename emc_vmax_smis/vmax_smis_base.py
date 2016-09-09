@@ -106,7 +106,7 @@ class VmaxSmisBase(object):
             groups = self.conn.Associators(name, ResultClass=result_class)
         return groups
 
-    def _references(self, name, result_class=None, assoc_class=None, role='Dependent'):
+    def references(self, name, result_class=None, assoc_class=None, role='Dependent'):
         if result_class is not None and assoc_class is not None:
             refs = self.conn.References(name, ResultClass=result_class, AssocClass=assoc_class, Role=role)
         elif assoc_class is not None:
@@ -330,7 +330,7 @@ class VmaxSmisBase(object):
                                      assoc_class='CIM_BasedOn')
 
     def get_unit_names(self, volume):
-        return self._references(volume, result_class='CIM_AllocatedFromStoragePool', role='Dependent')
+        return self.references(volume, result_class='CIM_AllocatedFromStoragePool', role='Dependent')
 
     def find_tier_policy_service(self, instance):
         found_tier_policy_service = None
@@ -364,7 +364,7 @@ class VmaxSmisBase(object):
             if system_name == config_service['SystemName']:
                 break
         else:
-            raise ReferenceError('%s: item not found' % system_name)
+            raise ReferenceError('%s: storage configuration service not found' % system_name)
         return config_service
 
     def find_storage_hardwareid_service(self, system_name):
@@ -373,8 +373,17 @@ class VmaxSmisBase(object):
             if system_name == config_service['SystemName']:
                 break
         else:
-            raise ReferenceError('%s: item not found' % system_name)
+            raise ReferenceError('%s: storage hardware id service not found' % system_name)
         return config_service
+
+    def find_replication_service(self, system_name):
+        rep_services = self.list_replication_services()
+        for rep_service in rep_services:
+            if system_name == rep_service['SystemName']:
+                break
+        else:
+            raise ReferenceError('%s: replication service not found' % system_name)
+        return rep_service
 
     def check_se_version(self):
         major_version = 0

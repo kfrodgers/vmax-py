@@ -63,9 +63,10 @@ def main():
     for dev_id in remainder:
         while len(dev_id) < 5:
             dev_id = '0' + dev_id
-        print dev_id.upper() + ':'
+        dev_id = dev_id.upper()
+        print dev_id + ':'
         try:
-            volume_props = smis_devices.get_volume_properties(system_name, dev_id.upper())
+            volume_props = smis_devices.get_volume_properties(system_name, dev_id)
             for prop in sorted(volume_props.keys()):
                 print '\t' + str(prop) + ' = ' + str(volume_props[prop])
         except ReferenceError:

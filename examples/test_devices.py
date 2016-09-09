@@ -30,3 +30,11 @@ if __name__ == '__main__':
             size = str(smis_devices.get_volume_size(system_name=sys, device_id=d))
             pool = smis_devices.get_pool_name(system_name=sys, device_id=d)
             print '\t' + d + ': ' + name + ' \t(sizeBytes=' + size + ') \t (inPool=' + str(pool) + ')'
+
+        for d in devs[-10:]:
+            try:
+                print str(d)
+                sync_sv = smis_devices.find_storage_synchronized_sv_sv(sys, d)
+                print '\t' + str(sync_sv)
+            except ReferenceError:
+                print '\tNot found'
