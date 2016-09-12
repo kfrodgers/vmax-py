@@ -96,3 +96,18 @@ class VmaxSmisSync(object):
             raise ReferenceError('%s - %s: sync sv not found' % (system_name, device_id))
 
         return sync_sv
+
+    def delete_sync_relationship(self, system_name, sync_sv, force=False):
+        rep_service = self.smis_base.find_replication_service(system_name)
+        rc, job = self.smis_base.invoke_method('ModifyReplicaSynchronization', rep_service,
+                                               Operation=self.smis_base.get_ecom_int(8, '16'),
+                                               Synchronization=sync_sv, Force=force)
+        if rc != 0:
+            rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
+            if rc != 0:
+                exception_message = "Error break clone relationship: Sync Name: %(syncName)s " \
+                                   "Return code: %(rc)lu.  Error: %(error)s." \
+                                   % {'syncName': sync_sv, 'rc': rc, 'error': errordesc}
+                raise RuntimeError(exception_message)
+
+        return rc

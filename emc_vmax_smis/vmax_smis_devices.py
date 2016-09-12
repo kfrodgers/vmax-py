@@ -188,16 +188,19 @@ class VmaxSmisDevices(object):
 
         return inst_name[0]['DeviceID']
 
-    def destroy_volume(self, system_name, device_id):
-        volume_instance = self.get_volume_instance(system_name, device_id)
+    def destroy_volumes(self, system_name, device_ids):
+        elements = []
+        for device_id in device_ids:
+            volume_instance = self.get_volume_instance(system_name, device_id)
+            elements.append(volume_instance.path)
 
         rc, job = self.smis_base.invoke_storage_method('ReturnElementsToStoragePool', system_name,
-                                                       TheElements=[volume_instance.path])
+                                                       TheElements=elements)
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
                 exception_message = "Error Delete Volume: %(volumeName)s. Return code: %(rc)lu.  Error: %(error)s." \
-                                    % {'volumeName': volume_instance['ElementName'],
+                                    % {'volumeName': str(device_ids),
                                        'rc': rc,
                                        'error': errordesc}
                 raise RuntimeError(exception_message)

@@ -66,9 +66,8 @@ if __name__ == '__main__':
     rc = smis_masking.delete_sg(system_name, sg_id)
     print 'delete SG ' + str(rc)
 
-    for device_id in device_ids:
-        rc = smis_devices.destroy_volume(system_name, device_id)
-        print 'delete device returned ' + str(rc)
+    rc = smis_devices.destroy_volumes(system_name, device_ids)
+    print 'delete volumes returned ' + str(rc)
 
     rc = smis_masking.remove_members_ig(system_name, ig_id, [hardware_id])
     rc = smis_masking.delete_ig(system_name, ig_id)
