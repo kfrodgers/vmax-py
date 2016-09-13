@@ -67,25 +67,29 @@ class VmaxSmisSync(object):
         return sorted(set(devices))
 
     def get_sync_sv_by_device(self, system_name, device_id):
+        sync_svs = []
         for sync_sv in self._load_all_sync_sv():
             source = self.get_sync_source(sync_sv)
             target = self.get_sync_target(sync_sv)
             if source['SystemName'] == system_name and device_id in [source['DeviceID'], target['DeviceId']]:
-                break
-        else:
+                sync_svs.append(sync_sv)
+
+        if len(sync_svs) == 0:
             raise ReferenceError('%s - %s: sync sv not found' % (system_name, device_id))
 
-        return sync_sv
+        return sync_svs
 
     def get_sync_sv_by_source(self, system_name, device_id):
+        sync_svs = []
         for sync_sv in self._load_all_sync_sv():
             source = self.get_sync_source(sync_sv)
             if source['SystemName'] == system_name and source['DeviceID'] == device_id:
-                break
-        else:
+                sync_svs.append(sync_sv)
+
+        if len(sync_svs) == 0:
             raise ReferenceError('%s - %s: sync sv not found' % (system_name, device_id))
 
-        return sync_sv
+        return sync_svs
 
     def get_sync_sv_by_target(self, system_name, device_id):
         for sync_sv in self._load_all_sync_sv():
