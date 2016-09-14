@@ -3,8 +3,35 @@
 import time
 from vmax_smis_base import VmaxSmisBase
 
-THINPROVISIONINGCOMPOSITE = 32768
-THINPROVISIONING = 5
+SMIS_TYPE_Mirror = 6
+SMIS_TYPE_Snapshot = 7
+SMIS_TYPE_Clone = 8
+SMIS_TYPE_TokenizedClone = 9
+
+SMIS_OP_Abort = 2
+SMIS_OP_ActivateConsistency = 3
+SMIS_OP_Activate = 4
+SMIS_OP_AddSyncPair = 5
+SMIS_OP_DeactivateConsistency = 6
+SMIS_OP_Deactivate = 7
+SMIS_OP_Detach = 8
+SMIS_OP_Dissolve = 9
+SMIS_OP_Failover = 10
+SMIS_OP_Failback = 11
+SMIS_OP_Fracture = 12
+SMIS_OP_RemoveSyncPair = 13
+SMIS_OP_ResyncReplica = 14
+SMIS_OP_RestorefromReplica = 15
+SMIS_OP_Resume = 16
+SMIS_OP_ResetToSync = 17
+SMIS_OP_ResetToAsync = 18
+SMIS_OP_ReturnToResourcePool = 19
+SMIS_OP_ReverseRoles = 20
+SMIS_OP_Split = 21
+SMIS_OP_Suspend = 22
+SMIS_OP_Unprepare = 23
+SMIS_OP_Prepare = 24
+SMIS_OP_ResettoAdaptive = 25
 
 
 class VmaxSmisSync(object):
@@ -101,17 +128,35 @@ class VmaxSmisSync(object):
 
         return sync_sv
 
-    def delete_sync_relationship(self, system_name, sync_sv, force=False):
+    def get_sync_sv_properties(self, sync_sv_name, property_list=None):
+        sync_sv_instance = self.smis_base.get_instance(sync_sv_name, property_list=property_list)
+
+        properties = {}
+        for p in sync_sv_instance.items():
+            properties[p[0]] = p[1]
+
+        return properties
+
+    def deactivate_sync_relationship(self, system_name, sync_sv, force=False):
+        return self.modify_sync_relationship(system_name, sync_sv, SMIS_OP_Deactivate, force=force)
+
+    def detach_sync_relationship(self, system_name, sync_sv, force=False):
+        return self.modify_sync_relationship(system_name, sync_sv, SMIS_OP_Detach, force=force)
+
+    def dissolve_sync_relationship(self, system_name, sync_sv, force=False):
+        return self.modify_sync_relationship(system_name, sync_sv, SMIS_OP_Dissolve, force=force)
+
+    def modify_sync_relationship(self, system_name, sync_sv, operation, force=False):
         rep_service = self.smis_base.find_replication_service(system_name)
         rc, job = self.smis_base.invoke_method('ModifyReplicaSynchronization', rep_service,
-                                               Operation=self.smis_base.get_ecom_int(8, '16'),
+                                               Operation=self.smis_base.get_ecom_int(operation, '16'),
                                                Synchronization=sync_sv, Force=force)
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
-                exception_message = "Error break clone relationship: Sync Name: %(syncName)s " \
-                                   "Return code: %(rc)lu.  Error: %(error)s." \
-                                   % {'syncName': sync_sv, 'rc': rc, 'error': errordesc}
+                exception_message = "Error modify sync relationship %(op)lu: Sync Name: %(syncName)s " \
+                                    "Return code: %(rc)lu.  Error: %(error)s." \
+                                    % {'op': operation, 'syncName': sync_sv, 'rc': rc, 'error': errordesc}
                 raise RuntimeError(exception_message)
 
         return rc

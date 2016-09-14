@@ -3,11 +3,10 @@
 from os import getenv
 from emc_vmax_smis.vmax_smis_sync import VmaxSmisSync
 
-def do_print(instance):
-    for s in instance:
-        print '\t' + str(s)
-        for item in s.items():
-            print '\t\t' + str(item)
+def do_print(name, props):
+    print str(name)
+    for k in sorted(props.keys()):
+        print '\t' + k + ' = ' + str(props[k])
 
 
 if __name__ == '__main__':
@@ -21,11 +20,13 @@ if __name__ == '__main__':
         print 'Sources'
         for source in sync_sources:
             svcs = smis_sync.get_sync_sv_by_source(s, source)
-            print str(source)
             for svc in svcs:
-                print '\t-->' + smis_sync.get_sync_target(svc)['deviceid']
+                props = smis_sync.get_sync_sv_properties(svc)
+                do_print(svc, props)
+
         sync_targets = smis_sync.get_sync_sv_target_devices(s)
         print 'Targets'
         for target in sync_targets:
             svc = smis_sync.get_sync_sv_by_target(s, target)
-            print str(target) + '\n\t<--' + smis_sync.get_sync_source(svc)['deviceid']
+            props = smis_sync.get_sync_sv_properties(svc)
+            do_print(svc, props)
