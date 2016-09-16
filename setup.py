@@ -35,7 +35,8 @@ setup(
     packages=find_packages(exclude=['test*']),
     scripts=['scripts/smis_list_devs', 'scripts/smis_list_igs', 'scripts/smis_list_mvs',
              'scripts/smis_list_pgs', 'scripts/smis_list_sgs', 'scripts/smis_list_unmapped_devs',
-             'scripts/smis_show_devs', 'scripts/smis_show_sync', 'scripts/smis_del_devs'],
+             'scripts/smis_show_devs', 'scripts/smis_show_sync', 'scripts/smis_del_devs',
+             'scripts/smis_add_devs'],
     install_requires=install_requires,
     data_files=[]
 )

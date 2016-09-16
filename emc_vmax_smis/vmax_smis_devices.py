@@ -1,7 +1,7 @@
 # Copyright 2016 EMC Corporation
 
 import time
-from vmax_smis_base import VmaxSmisBase
+from vmax_smis_base import VmaxSmisBase, get_ecom_int
 
 THINPROVISIONINGCOMPOSITE = 32768
 THINPROVISIONING = 5
@@ -131,7 +131,7 @@ class VmaxSmisDevices(object):
 
         return pool_instance_names
 
-    def _find_pool_instance_name(self, system_name, pool_instance_id):
+    def get_pool_instance(self, system_name, pool_instance_id):
         pool_instance_names = self._list_pool_instance_names(system_name)
         for name in pool_instance_names:
             if name['InstanceID'] == pool_instance_id:
@@ -139,6 +139,10 @@ class VmaxSmisDevices(object):
         else:
             raise ReferenceError('%s: pool instance not found' % pool_instance_id)
 
+        return name
+
+    def get_pool_instance_name(self, system_name, pool_instance_id):
+        name = self.get_pool_instance(system_name, pool_instance_id)
         return name.path
 
     def list_storage_pools(self, system_name):
@@ -168,12 +172,13 @@ class VmaxSmisDevices(object):
             pool = storage_pools[0]['PoolID']
         return pool
 
-    def create_volume(self, system_name, volume_name, pool_instance_id, volume_size):
-        pool_instance_name = self._find_pool_instance_name(system_name, pool_instance_id)
+    def create_volumes(self, system_name, volume_name, pool_instance_id, volume_size, count=1):
+        pool_instance_name = self.get_pool_instance_name(system_name, pool_instance_id)
         rc, job = self.smis_base.invoke_storage_method('CreateOrModifyElementFromStoragePool', system_name,
                                                        ElementName=volume_name, InPool=pool_instance_name,
-                                                       ElementType=self.smis_base.get_ecom_int(THINPROVISIONING, '16'),
-                                                       Size=self.smis_base.get_ecom_int(volume_size, '64'))
+                                                       ElementType=get_ecom_int(THINPROVISIONING, '16'),
+                                                       Size=get_ecom_int(volume_size, '64'),
+                                                       EMCNumberOfDevices=get_ecom_int(count, '32'))
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -183,10 +188,14 @@ class VmaxSmisDevices(object):
                                        'error': errordesc}
                 raise RuntimeError(exception_message)
 
-        inst_name = self.smis_base.associators(job['job'], result_class='EMC_StorageVolume')
+        inst_names = self.smis_base.associators(job['job'], result_class='EMC_StorageVolume')
         self.devices_refresh = True
 
-        return inst_name[0]['DeviceID']
+        device_ids = []
+        for inst_name in inst_names:
+            device_ids.append(inst_name['DeviceID'])
+
+        return device_ids
 
     def destroy_volumes(self, system_name, device_ids):
         elements = []

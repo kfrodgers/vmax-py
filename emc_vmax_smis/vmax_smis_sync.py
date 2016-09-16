@@ -1,7 +1,7 @@
 # Copyright 2016 EMC Corporation
 
 import time
-from vmax_smis_base import VmaxSmisBase
+from vmax_smis_base import VmaxSmisBase, get_ecom_int
 
 SMIS_TYPE_Mirror = 6
 SMIS_TYPE_Snapshot = 7
@@ -149,7 +149,7 @@ class VmaxSmisSync(object):
     def modify_sync_relationship(self, system_name, sync_sv, operation, force=False):
         rep_service = self.smis_base.find_replication_service(system_name)
         rc, job = self.smis_base.invoke_method('ModifyReplicaSynchronization', rep_service,
-                                               Operation=self.smis_base.get_ecom_int(operation, '16'),
+                                               Operation=get_ecom_int(operation, '16'),
                                                Synchronization=sync_sv, Force=force)
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])

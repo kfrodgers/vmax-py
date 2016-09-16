@@ -1,6 +1,6 @@
 # Copyright 2016 EMC Corporation
 
-from vmax_smis_base import VmaxSmisBase
+from vmax_smis_base import VmaxSmisBase, get_ecom_int
 import time
 
 STORAGE_GROUP_TYPE = 4
@@ -206,12 +206,12 @@ class VmaxSmisMasking(object):
     def create_sg(self, system_name, sg_name, volume_instances=None):
         if volume_instances is not None and len(volume_instances) > 0:
             rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=sg_name,
-                                                              Type=VmaxSmisBase.get_ecom_int(STORAGE_GROUP_TYPE, '16'),
+                                                              Type=get_ecom_int(STORAGE_GROUP_TYPE, '16'),
                                                               Members=volume_instances,
                                                               DeleteWhenBecomesUnassociated=False)
         else:
             rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=sg_name,
-                                                              Type=VmaxSmisBase.get_ecom_int(STORAGE_GROUP_TYPE, '16'),
+                                                              Type=get_ecom_int(STORAGE_GROUP_TYPE, '16'),
                                                               DeleteWhenBecomesUnassociated=False)
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
@@ -364,11 +364,11 @@ class VmaxSmisMasking(object):
         if director_names is not None and len(director_names) > 0:
             members = self.get_storage_directors(system_name, director_names)
             rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=pg_name,
-                                                              Type=VmaxSmisBase.get_ecom_int(PORT_GROUP_TYPE, '16'),
+                                                              Type=get_ecom_int(PORT_GROUP_TYPE, '16'),
                                                               Members=members)
         else:
             rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=pg_name,
-                                                              Type=VmaxSmisBase.get_ecom_int(PORT_GROUP_TYPE, '16'))
+                                                              Type=get_ecom_int(PORT_GROUP_TYPE, '16'))
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -499,7 +499,7 @@ class VmaxSmisMasking(object):
                 type_id = 5
         if type_id == 0:
             raise RuntimeError("Cannot determine the hardware type.")
-        return VmaxSmisBase.get_ecom_int(type_id, '16')
+        return get_ecom_int(type_id, '16')
 
     def create_hba_id(self, system_name, wwn_or_iqn):
         config_service = self.smis_base.find_storage_hardwareid_service(system_name)
@@ -565,12 +565,12 @@ class VmaxSmisMasking(object):
 
     def create_ig(self, system_name, ig_name, hba_ids=None):
         if hba_ids is not None and len(hba_ids) > 0:
-            ecom_type = VmaxSmisBase.get_ecom_int(INITIATOR_GROUP_TYPE, '16')
+            ecom_type = get_ecom_int(INITIATOR_GROUP_TYPE, '16')
             rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=ig_name,
                                                               Type=ecom_type,
                                                               Members=self.get_hba_instances(hba_ids))
         else:
-            ecom_type = VmaxSmisBase.get_ecom_int(INITIATOR_GROUP_TYPE, '16')
+            ecom_type = get_ecom_int(INITIATOR_GROUP_TYPE, '16')
             rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=ig_name,
                                                               Type=ecom_type)
         if rc != 0:

@@ -48,17 +48,16 @@ if __name__ == '__main__':
         new_device = smis_devices.get_volume_by_name(system_name, volume_name)
         print str(new_device) + ' volume already exists'
     except ReferenceError:
-        new_device = smis_devices.create_volume(system_name, volume_name, pool_id, 1024*1024*1024)
-        print str(new_device) + ' volume created'
+        new_devices = smis_devices.create_volumes(system_name, volume_name, pool_id, 1024*1024*1024)
+        new_device = new_devices[0]
+        print str(new_devices) + ' volume created'
 
     sg_name = u'kfr-test-sg'
     try:
         sg_id = smis_masking.get_sg_by_name(system_name, sg_name)
         print sg_name + ' alreay exists'
     except ReferenceError:
-        device_instances = smis_devices.get_volume_instance_names(system_name, [new_device])
-        sg_id = smis_masking.create_sg(system_name, sg_name, device_instances)
-        print str(sg_id) + ' created'
+        device_instances = smis_devices.get_volume_instance_names(system_name, new_device)
 
     device_ids = smis_masking.list_volumes_in_sg(system_name, sg_id)
     device_instances = smis_devices.get_volume_instance_names(system_name, device_ids)

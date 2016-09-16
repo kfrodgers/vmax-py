@@ -8,6 +8,30 @@ import vmax_smis_https
 EMC_ROOT = 'root/emc'
 
 
+def get_ecom_int(number, data_type):
+    """Get the ecom int from the number.
+
+    :param number: the number to convert
+    :param data_type: the type to convert it to
+    :returns: result
+    """
+    try:
+        if data_type == '8':
+            result = pywbem.Uint8(str(number))
+        elif data_type == '16':
+            result = pywbem.Uint16(str(number))
+        elif data_type == '32':
+            result = pywbem.Uint32(str(number))
+        elif data_type == '64':
+            result = pywbem.Uint64(str(number))
+        else:
+            raise NameError()
+    except NameError:
+        result = str(number)
+
+    return result
+
+
 class VmaxSmisBase(object):
     def __init__(self, host, port=5988, user='admin', passwd='#1Password', use_ssl=False,
                  client_cert_key=None, client_cert_file=None, ecom_ca_cert=None, ecom_no_verification=True):
@@ -70,9 +94,10 @@ class VmaxSmisBase(object):
             exception_message = "Cannot connect to ECOM server."
             raise RuntimeError(RuntimeError=exception_message)
 
-    def dump_instance(self, instance):
+    @staticmethod
+    def dump_instance(instance):
         output = str(instance) + '\n'
-        for item in instance.items():
+        for item in sorted(instance.items()):
             output += '\t' + str(item) + '\n'
         return output
 
@@ -473,24 +498,3 @@ class VmaxSmisBase(object):
             return False
         else:
             return True
-
-    @staticmethod
-    def get_ecom_int(number_str, data_type):
-        """Get the ecom int from the number.
-
-        :param number_str: the number in string format
-        :param data_type: the type to convert it to
-        :returns: result
-        """
-        try:
-            result = {
-                '8': pywbem.Uint8(number_str),
-                '16': pywbem.Uint16(number_str),
-                '32': pywbem.Uint32(number_str),
-                '64': pywbem.Uint64(number_str)
-            }
-            result = result.get(data_type, number_str)
-        except NameError:
-            result = number_str
-
-        return result
