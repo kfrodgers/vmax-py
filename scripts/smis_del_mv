@@ -12,7 +12,7 @@ USAGE = ('Usage: {0} '
          '-s <symm_id>|--sid <symm_id> '
          '[-u <username>|--user <username>] '
          '[-p <password>|--password <password>]\n\t'
-         '[-S|--use_ssl] [-n <name>|--name=<name>]\n'.format(PROGNAME))
+         '[-S|--use_ssl] -n <name>|--name=<name>\n'.format(PROGNAME))
 
 
 def usage():
@@ -22,7 +22,7 @@ def usage():
 
 def main():
     try:
-        options, remainder = getopt.getopt(sys.argv[1:], 'h:s:u:p:Sn',
+        options, remainder = getopt.getopt(sys.argv[1:], 'h:s:u:p:Sn:',
                                            ['host=', 'sid=', 'user=', 'password=', 'use_ssl', 'name='])
     except getopt.GetoptError as err:
         sys.stderr.write('{0!s}\n'.format(err))
@@ -35,9 +35,6 @@ def main():
     use_ssl = False
     port = 5988
     name = None
-    sg_name = None
-    pg_name = None
-    ig_name = None
     for opt, arg in options:
         if opt in ('-h', '--host'):
             host = arg
@@ -68,7 +65,7 @@ def main():
 
     masking_views = smis_masking.list_mv_instance_ids(system_name)
     if name not in masking_views:
-        print '%s : MV not found' % ig_name
+        print '%s : MV not found' % name
         sys.exit(1)
 
     smis_masking.delete_masking_view(system_name, name)

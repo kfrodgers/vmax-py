@@ -11,8 +11,8 @@ USAGE = ('Usage: {0} '
          '-h <host>|--host <host> '
          '-s <symm_id>|--sid <symm_id> '
          '[-u <username>|--user <username>] '
-         '[-p <password>|--password <password>] '
-         '[-S|--use_ssl]\n'.format(PROGNAME))
+         '[-p <password>|--password <password>] [-S|--use_ssl]\n\t'
+         '-n <name>|--name=<name> -V <sg>|-sg=<sg> -P <pg>|-pg=<pg> -I <ig>|-ig=<ig>\n'.format(PROGNAME))
 
 
 def usage():
@@ -76,7 +76,7 @@ def main():
 
     masking_views = smis_masking.list_mv_instance_ids(system_name)
     if name in masking_views:
-        print '%s : MV already exists' % ig_name
+        print '%s : MV already exists' % name
         sys.exit(1)
 
     smis_masking.create_masking_view(system_name, name, ig_name, sg_name, pg_name)
