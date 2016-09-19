@@ -11,8 +11,8 @@ USAGE = ('Usage: {0} '
          '-h <host>|--host <host> '
          '-s <symm_id>|--sid <symm_id> '
          '[-u <username>|--user <username>] '
-         '[-p <password>|--password <password>] '
-         '[-S|--use_ssl]\n'.format(PROGNAME))
+         '[-p <password>|--password <password>]\n\t'
+         '[-S|--use_ssl] [-n <name>|--name=<name>]\n'.format(PROGNAME))
 
 
 def usage():
@@ -22,8 +22,8 @@ def usage():
 
 def main():
     try:
-        options, remainder = getopt.getopt(sys.argv[1:], 'h:s:u:p:S',
-                                           ['host=', 'sid=', 'user=', 'password=', 'use_ssl'])
+        options, remainder = getopt.getopt(sys.argv[1:], 'h:s:u:p:Sn',
+                                           ['host=', 'sid=', 'user=', 'password=', 'use_ssl', 'name='])
     except getopt.GetoptError as err:
         sys.stderr.write('{0!s}\n'.format(err))
         sys.exit(usage())
@@ -34,6 +34,10 @@ def main():
     password = os.getenv('SMIS_PASSWORD', '#1Password')
     use_ssl = False
     port = 5988
+    name = None
+    sg_name = None
+    pg_name = None
+    ig_name = None
     for opt, arg in options:
         if opt in ('-h', '--host'):
             host = arg
@@ -46,10 +50,12 @@ def main():
         elif opt in ('-S', '--use_ssl'):
             use_ssl = True
             port = 5989
+        elif opt in ('-n', '--name'):
+            name = arg
         else:
             sys.exit(usage())
 
-    if host is None or sid is None:
+    if host is None or sid is None or name is None:
         sys.exit(usage())
 
     smis_masking = VmaxSmisMasking(host=host, port=port, user=user, passwd=password, use_ssl=use_ssl)
@@ -60,14 +66,12 @@ def main():
     else:
         raise ReferenceError('%s: symmetrix id not found' % sid)
 
-    for mv in smis_masking.list_mv_instance_ids(system_name):
-        print mv
-        for sg in smis_masking.list_sgs_in_view(system_name, mv):
-            print '\tSG: ' + smis_masking.get_sg_name(system_name, sg)
-        for pg in smis_masking.list_pgs_in_view(system_name, mv):
-            print '\tPG: ' + smis_masking.get_pg_name(system_name, pg)
-        for ig in smis_masking.list_igs_in_view(system_name, mv):
-            print '\tIG: ' + smis_masking.get_ig_name(system_name, ig)
+    masking_views = smis_masking.list_mv_instance_ids(system_name)
+    if name not in masking_views:
+        print '%s : MV not found' % ig_name
+        sys.exit(1)
+
+    smis_masking.delete_masking_view(system_name, name)
 
 if __name__ == '__main__':
     try:
