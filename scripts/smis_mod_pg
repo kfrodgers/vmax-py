@@ -97,27 +97,27 @@ def main():
         smis_masking.delete_pg(system_name, port_group_id)
     elif is_remove:
         pg_dir_ids = smis_masking.list_directors_in_pg(system_name, port_group_id)
-        remove_ids = []
+        remove_dirs = []
         for remove_dir in remainder:
             remove_id = smis_masking.get_storage_director_by_name(system_name, remove_dir)
             if remove_id in pg_dir_ids:
-                remove_ids.append(remove_dir)
+                remove_dirs.append(remove_dir)
             else:
                 print '%s: Not found in PG' % remove_dir
-        if len(remove_ids) > 0:
-            print 'Removing ' + str(remove_ids) + ' from ' + pg_name
-            smis_masking.remove_members_pg(system_name, port_group_id, remove_ids)
+        if len(remove_dirs) > 0:
+            print 'Removing ' + str(remove_dirs) + ' from ' + pg_name
+            smis_masking.remove_members_pg(system_name, port_group_id, remove_dirs)
     elif is_add:
-        add_ids = []
+        add_dirs = []
         for add_dir in remainder:
             try:
-                add_id = smis_masking.get_storage_director_by_name(system_name, add_dir)
-                add_ids.append(add_id)
+                smis_masking.get_storage_director_by_name(system_name, add_dir)
+                add_dirs.append(add_dir)
             except ReferenceError:
                 print '%s: director not found' % add_dir
-        if len(add_ids) > 0:
-            print 'Adding ' + str(add_ids) + ' to ' + pg_name
-            smis_masking.add_members_pg(system_name, port_group_id, add_ids)
+        if len(add_dirs) > 0:
+            print 'Adding ' + str(add_dirs) + ' to ' + pg_name
+            smis_masking.add_members_pg(system_name, port_group_id, add_dirs)
     else:
         raise AssertionError('Unknown operation')
 
