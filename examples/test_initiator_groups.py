@@ -15,14 +15,16 @@ if __name__ == '__main__':
         unreferenced = []
         nohbas = []
 
+        print 'smis_masking.list_hba_ids'
         hardware_ids = smis_masking.list_hba_ids()
         for h in hardware_ids:
             print str(h)
 
-        inst = smis_masking.get_hba_instance(h)
-        for i in inst.items():
-            print str(i)
+        print 'smis_masking.get_hba_instance_name'
+        inst = smis_masking.get_hba_instance_name(h)
+        print smis_base.dump_instance(smis_base.get_instance(inst))
 
+        print 'smis_masking.list_ig_instance_ids'
         groups = smis_masking.list_ig_instance_ids(s)
         for ig in groups:
             last = ig

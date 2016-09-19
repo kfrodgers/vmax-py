@@ -7,6 +7,9 @@ STORAGE_GROUP_TYPE = 4
 PORT_GROUP_TYPE = 3
 INITIATOR_GROUP_TYPE = 2
 
+HBA_TYPE_WWN = 2
+HBA_TYPE_IQN = 5
+
 
 class VmaxSmisMasking(object):
     def __init__(self, **kwargs):
@@ -489,22 +492,24 @@ class VmaxSmisMasking(object):
         return self.smis_base.list_views_for_initiator_group(self.get_ig_instance_name(system_name, ig_instance_id))
 
     @staticmethod
-    def _hba_type(www_or_iqn):
+    def get_hba_type(www_or_iqn):
         type_id = 0
         try:
             int(www_or_iqn, 16)
-            type_id = 2
+            if len(www_or_iqn) == 16:
+                type_id = HBA_TYPE_WWN
         except ValueError:
-            if 'iqn' in www_or_iqn.lower():
-                type_id = 5
+            if www_or_iqn.lower().startswith('iqn'):
+                type_id = HBA_TYPE_IQN
         if type_id == 0:
-            raise RuntimeError("Cannot determine the hardware type.")
-        return get_ecom_int(type_id, '16')
+            raise RuntimeError("%s: Invalid format for WWW or IQN." % www_or_iqn)
+        return type_id
 
     def create_hba_id(self, system_name, wwn_or_iqn):
         config_service = self.smis_base.find_storage_hardwareid_service(system_name)
         rc, job = self.smis_base.invoke_method('CreateStorageHardwareID', config_service,
-                                               StorageID=wwn_or_iqn, IDType=self._hba_type(wwn_or_iqn))
+                                               StorageID=wwn_or_iqn,
+                                               IDType=get_ecom_int(self.get_hba_type(wwn_or_iqn), '16'))
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -521,7 +526,7 @@ class VmaxSmisMasking(object):
     def delete_hba_id(self, system_name, hba_id):
         config_service = self.smis_base.find_storage_hardwareid_service(system_name)
         rc, job = self.smis_base.invoke_method('DeleteStorageHardwareID', config_service,
-                                               HardwareID=self.get_hba_instance(hba_id))
+                                               HardwareID=self.get_hba_instance_name(hba_id))
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -547,7 +552,7 @@ class VmaxSmisMasking(object):
 
         return instance['InstanceID']
 
-    def get_hba_instance(self, hba_id):
+    def get_hba_instance_name(self, hba_id):
         hardware_instances = self.smis_base.list_all_initiators()
         for instance in hardware_instances:
             if hba_id == instance['InstanceID']:
@@ -557,10 +562,10 @@ class VmaxSmisMasking(object):
 
         return instance.path
 
-    def get_hba_instances(self, hba_ids):
+    def get_hba_instance_names(self, hba_ids):
         hba_names = []
         for hba_id in hba_ids:
-            hba_names.append(self.get_hba_instance(hba_id))
+            hba_names.append(self.get_hba_instance_name(hba_id))
         return hba_names
 
     def create_ig(self, system_name, ig_name, hba_ids=None):
@@ -568,7 +573,7 @@ class VmaxSmisMasking(object):
             ecom_type = get_ecom_int(INITIATOR_GROUP_TYPE, '16')
             rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=ig_name,
                                                               Type=ecom_type,
-                                                              Members=self.get_hba_instances(hba_ids))
+                                                              Members=self.get_hba_instance_names(hba_ids))
         else:
             ecom_type = get_ecom_int(INITIATOR_GROUP_TYPE, '16')
             rc, job = self.smis_base.invoke_controller_method('CreateGroup', system_name, GroupName=ig_name,
@@ -593,7 +598,7 @@ class VmaxSmisMasking(object):
     def add_members_ig(self, system_name, ig_instance_id, hba_ids):
         instance_name = self.get_ig_instance_name(system_name, ig_instance_id)
         rc, job = self.smis_base.invoke_controller_method('AddMembers', system_name, MaskingGroup=instance_name,
-                                                          Members=self.get_hba_instances(hba_ids))
+                                                          Members=self.get_hba_instance_names(hba_ids))
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
@@ -608,7 +613,7 @@ class VmaxSmisMasking(object):
     def remove_members_ig(self, system_name, ig_instance_id, hba_ids):
         instance_name = self.get_ig_instance_name(system_name, ig_instance_id)
         rc, job = self.smis_base.invoke_controller_method('RemoveMembers', system_name, MaskingGroup=instance_name,
-                                                          Members=self.get_hba_instances(hba_ids))
+                                                          Members=self.get_hba_instance_names(hba_ids))
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:

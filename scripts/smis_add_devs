@@ -16,13 +16,13 @@ USAGE = ('Usage: {0} '
          '[-u <username>|--user <username>] '
          '[-p <password>|--password <password>]\n\t'
          '[-S|--use_ssl] [-n <name>|--name=<name>]'
-         '[-g <size>|--size=<size>] [-c <count>|--count=<count>]'
+         '[-g <sizeGB>|--size=<sizeGB>] [-c <count>|--count=<count>]'
          '-P <pool>|--pool=<pool>\n'.format(PROGNAME))
 
 
 def usage():
     sys.stderr.write(USAGE)
-    sys.exit(2)
+    return 2
 
 
 def main():
@@ -32,7 +32,7 @@ def main():
                                             'name=', 'pool=', 'size=', 'count='])
     except getopt.GetoptError as err:
         sys.stderr.write('{0!s}\n'.format(err))
-        usage()
+        sys.exit(usage())
 
     host = os.getenv('SMIS_HOST', None)
     sid = os.getenv('SMIS_SID', None)
@@ -60,15 +60,15 @@ def main():
             name = arg
         elif opt in ('-P', '--pool'):
             pool = arg
-        elif opt in ('-s', '--size'):
+        elif opt in ('-g', '--size'):
             size = int(arg)
         elif opt in ('-c', '--count'):
             count = int(arg)
         else:
-            usage()
+            sys.exit(usage())
 
     if host is None or sid is None:
-        usage()
+        sys.exit(usage())
 
     smis_devices = VmaxSmisDevices(host=host, port=port, user=user, passwd=password, use_ssl=use_ssl)
 
@@ -82,13 +82,13 @@ def main():
         print 'Available storage pools'
         storage_pools = smis_devices.list_storage_pools(system_name)
         for storage_pool in storage_pools:
-            pool_inst =  smis_devices.get_pool_instance(system_name, storage_pool)
+            pool_inst = smis_devices.get_pool_instance(system_name, storage_pool)
             print str(pool_inst['ElementName'])
-        usage()
+        sys.exit(usage())
 
     storage_pools = smis_devices.list_storage_pools(system_name)
     for storage_pool in storage_pools:
-        pool_inst =  smis_devices.get_pool_instance(system_name, storage_pool)
+        pool_inst = smis_devices.get_pool_instance(system_name, storage_pool)
         if pool == pool_inst['ElementName']:
             break
     else:

@@ -18,7 +18,7 @@ USAGE = ('Usage: {0} '
 
 def usage():
     sys.stderr.write(USAGE)
-    sys.exit(2)
+    return 2
 
 
 def main():
@@ -28,7 +28,7 @@ def main():
                                             'mapped', 'unmapped', 'use_ssl'])
     except getopt.GetoptError as err:
         sys.stderr.write('{0!s}\n'.format(err))
-        usage()
+        sys.exit(usage())
 
     host = os.getenv('SMIS_HOST', None)
     sid = os.getenv('SMIS_SID', None)
@@ -58,10 +58,10 @@ def main():
             use_ssl = True
             port = 5989
         else:
-            usage()
+            sys.exit(usage())
 
     if host is None or sid is None:
-        usage()
+        sys.exit(usage())
 
     smis_devices = VmaxSmisDevices(host=host, port=port, user=user, passwd=password, use_ssl=use_ssl)
 
