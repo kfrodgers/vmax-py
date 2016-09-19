@@ -111,7 +111,7 @@ def main():
         if len(remove_devs) > 0:
             print 'Removing ' + str(remove_devs) + ' from ' + sg_name
             smis_masking.remove_members_sg(system_name, storage_group_id,
-                                           smis_devices.get_volume_instance_names(remove_devs))
+                                           smis_devices.get_volume_instance_names(system_name, remove_devs))
     elif is_add:
         add_devs = []
         for add_dev in remainder:
@@ -126,7 +126,7 @@ def main():
         if len(add_devs) > 0:
             print 'Adding ' + str(add_devs) + ' to ' + sg_name
             smis_masking.add_members_sg(system_name, storage_group_id,
-                                        smis_devices.get_volume_instance_names(add_devs))
+                                        smis_devices.get_volume_instance_names(system_name, add_devs))
     else:
         raise AssertionError('Unknown operation')
 
