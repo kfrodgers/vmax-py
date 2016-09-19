@@ -1,0 +1,129 @@
+#! /usr/bin/python
+# Copyright 2016 EMC Corporation
+
+import os
+import sys
+import getopt
+from emc_vmax_smis.vmax_smis_masking import VmaxSmisMasking
+
+PROGNAME = os.path.basename(sys.argv[0])
+USAGE = ('Usage: {0} '
+         '-h <host>|--host=<host> '
+         '-s <symm_id>|--sid=<symm_id> '
+         '[-S|--use_ssl] [-u <username>|--user=<username>] '
+         '[-p <password>|--password=<password>]\n\t'
+         '-n <name>|-name=<name> [-c|--create] [-d|--delete] '
+         '[-a|--add] [-r|--remove] '
+         'wwn_or_iqn [wwn_or_iqn2 ...]\n'.format(PROGNAME))
+
+
+def usage():
+    sys.stderr.write(USAGE)
+    return 2
+
+
+def main():
+    try:
+        options, remainder = getopt.getopt(sys.argv[1:], 'h:s:u:p:Sn:card',
+                                           ['host=', 'sid=', 'user=', 'password=', 'use_ssl',
+                                            'name=', 'create', 'add', 'remove', 'delete'])
+    except getopt.GetoptError as err:
+        sys.stderr.write('{0!s}\n'.format(err))
+        sys.exit(usage())
+
+    host = os.getenv('SMIS_HOST', None)
+    sid = os.getenv('SMIS_SID', None)
+    user = os.getenv('SMIS_USER', 'admin')
+    password = os.getenv('SMIS_PASSWORD', '#1Password')
+    use_ssl = False
+    port = 5988
+    pg_name = None
+    is_create = False
+    is_add = False
+    is_remove = False
+    is_delete = False
+    for opt, arg in options:
+        if opt in ('-h', '--host'):
+            host = arg
+        elif opt in ('-s', '--sid'):
+            sid = arg
+        elif opt in ('-u', '--user'):
+            user = arg
+        elif opt in ('-p', '--password'):
+            password = arg
+        elif opt in ('-S', '--use_ssl'):
+            use_ssl = True
+            port = 5989
+        elif opt in ('-n', '--name'):
+            pg_name = arg
+        elif opt in ('-c', '--create'):
+            is_create = True
+            is_add = True
+        elif opt in ('-a', '--add'):
+            is_add = True
+        elif opt in ('-r', '--remove'):
+            is_remove = True
+        elif opt in ('-d', '--delete'):
+            is_delete = True
+            is_remove = True
+        else:
+            sys.exit(usage())
+
+    if host is None or sid is None or pg_name is None \
+            or is_add == is_remove or (is_create and is_delete):
+        sys.exit(usage())
+
+    smis_masking = VmaxSmisMasking(host=host, port=port, user=user, passwd=password, use_ssl=use_ssl)
+
+    for system_name in smis_masking.smis_base.list_storage_system_names():
+        if system_name.endswith(sid):
+            break
+    else:
+        raise ReferenceError('%s: symmetrix id not found' % sid)
+
+    try:
+        port_group_id = smis_masking.get_pg_by_name(system_name, pg_name)
+        if is_create:
+            print '%s: PG already exists' % pg_name
+            sys.exit(1)
+    except ReferenceError:
+        if is_create:
+            port_group_id = smis_masking.create_pg(system_name, pg_name)
+        else:
+            print '%s : PG not found' % pg_name
+            sys.exit(1)
+
+    if is_delete:
+        smis_masking.delete_pg(system_name, port_group_id)
+    elif is_remove:
+        pg_dir_ids = smis_masking.list_directors_in_pg(system_name, port_group_id)
+        remove_ids = []
+        for remove_dir in remainder:
+            remove_id = smis_masking.get_storage_director_by_name(system_name, remove_dir)
+            if remove_id in pg_dir_ids:
+                remove_ids.append(remove_dir)
+            else:
+                print '%s: Not found in PG' % remove_dir
+        if len(remove_ids) > 0:
+            print 'Removing ' + str(remove_ids) + ' from ' + pg_name
+            smis_masking.remove_members_pg(system_name, port_group_id, remove_ids)
+    elif is_add:
+        add_ids = []
+        for add_dir in remainder:
+            try:
+                add_id = smis_masking.get_storage_director_by_name(system_name, add_dir)
+                add_ids.append(add_id)
+            except ReferenceError:
+                print '%s: director not found' % add_dir
+        if len(add_ids) > 0:
+            print 'Adding ' + str(add_ids) + ' to ' + pg_name
+            smis_masking.add_members_pg(system_name, port_group_id, add_ids)
+    else:
+        raise AssertionError('Unknown operation')
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass

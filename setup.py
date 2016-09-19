@@ -36,7 +36,8 @@ setup(
     scripts=['scripts/smis_list_devs', 'scripts/smis_list_igs', 'scripts/smis_list_mvs',
              'scripts/smis_list_pgs', 'scripts/smis_list_sgs', 'scripts/smis_list_unmapped_devs',
              'scripts/smis_show_devs', 'scripts/smis_show_sync', 'scripts/smis_del_devs',
-             'scripts/smis_add_devs', 'scripts/smis_mod_ig'],
+             'scripts/smis_add_devs', 'scripts/smis_mod_ig', 'scripts/smis_mod_sg',
+             'scripts/smis_mod_pg'],
     install_requires=install_requires,
     data_files=[]
 )

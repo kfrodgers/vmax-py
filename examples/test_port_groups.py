@@ -15,6 +15,10 @@ if __name__ == '__main__':
         for e in endpoints:
             print str(e)
 
+        inst_name = smis_masking.get_storage_director_by_name(s, e)
+        inst = smis_base.get_instance(inst_name)
+        print smis_base.dump_instance(inst)
+
         print '\n'
         last = ''
         unrefed_groups = []

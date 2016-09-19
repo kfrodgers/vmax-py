@@ -1,0 +1,136 @@
+#! /usr/bin/python
+# Copyright 2016 EMC Corporation
+
+import os
+import sys
+import getopt
+from emc_vmax_smis.vmax_smis_masking import VmaxSmisMasking
+from emc_vmax_smis.vmax_smis_devices import VmaxSmisDevices
+
+PROGNAME = os.path.basename(sys.argv[0])
+USAGE = ('Usage: {0} '
+         '-h <host>|--host=<host> '
+         '-s <symm_id>|--sid=<symm_id> '
+         '[-S|--use_ssl] [-u <username>|--user=<username>] '
+         '[-p <password>|--password=<password>]\n\t'
+         '-n <name>|-name=<name> [-c|--create] [-d|--delete] '
+         '[-a|--add] [-r|--remove] '
+         'device_id [device_id2 ...]\n'.format(PROGNAME))
+
+
+def usage():
+    sys.stderr.write(USAGE)
+    return 2
+
+
+def main():
+    try:
+        options, remainder = getopt.getopt(sys.argv[1:], 'h:s:u:p:Sn:card',
+                                           ['host=', 'sid=', 'user=', 'password=', 'use_ssl',
+                                            'name=', 'create', 'add', 'remove', 'delete'])
+    except getopt.GetoptError as err:
+        sys.stderr.write('{0!s}\n'.format(err))
+        sys.exit(usage())
+
+    host = os.getenv('SMIS_HOST', None)
+    sid = os.getenv('SMIS_SID', None)
+    user = os.getenv('SMIS_USER', 'admin')
+    password = os.getenv('SMIS_PASSWORD', '#1Password')
+    use_ssl = False
+    port = 5988
+    sg_name = None
+    is_create = False
+    is_add = False
+    is_remove = False
+    is_delete = False
+    for opt, arg in options:
+        if opt in ('-h', '--host'):
+            host = arg
+        elif opt in ('-s', '--sid'):
+            sid = arg
+        elif opt in ('-u', '--user'):
+            user = arg
+        elif opt in ('-p', '--password'):
+            password = arg
+        elif opt in ('-S', '--use_ssl'):
+            use_ssl = True
+            port = 5989
+        elif opt in ('-n', '--name'):
+            sg_name = arg
+        elif opt in ('-c', '--create'):
+            is_create = True
+            is_add = True
+        elif opt in ('-a', '--add'):
+            is_add = True
+        elif opt in ('-r', '--remove'):
+            is_remove = True
+        elif opt in ('-d', '--delete'):
+            is_delete = True
+            is_remove = True
+        else:
+            sys.exit(usage())
+
+    if host is None or sid is None or sg_name is None \
+            or is_add == is_remove or (is_create and is_delete):
+        sys.exit(usage())
+
+    smis_masking = VmaxSmisMasking(host=host, port=port, user=user, passwd=password, use_ssl=use_ssl)
+    smis_devices = VmaxSmisDevices(smis_base=smis_masking.smis_base)
+
+    for system_name in smis_masking.smis_base.list_storage_system_names():
+        if system_name.endswith(sid):
+            break
+    else:
+        raise ReferenceError('%s: symmetrix id not found' % sid)
+
+    try:
+        storage_group_id = smis_masking.get_sg_by_name(system_name, sg_name)
+        if is_create:
+            print '%s: SG already exists' % sg_name
+            sys.exit(1)
+    except ReferenceError:
+        if is_create:
+            storage_group_id = smis_masking.create_sg(system_name, sg_name)
+        else:
+            print '%s : SG not found' % sg_name
+            sys.exit(1)
+
+    if is_delete:
+        smis_masking.delete_sg(system_name, storage_group_id)
+    elif is_remove:
+        dev_ids = smis_masking.list_volumes_in_sg(system_name, storage_group_id)
+        remove_devs = []
+        for remove_dev in remainder:
+            while len(remove_dev) < 5:
+                remove_dev = '0' + remove_dev
+
+            if remove_dev.upper() in dev_ids:
+                remove_devs.append(remove_dev.upper())
+            else:
+                print '%s: Not found in SG' % remove_dev.upper()
+        if len(remove_devs) > 0:
+            print 'Removing ' + str(remove_devs) + ' from ' + sg_name
+            smis_masking.remove_members_sg(system_name, storage_group_id, remove_devs)
+    elif is_add:
+        add_devs = []
+        for add_dev in remainder:
+            try:
+                while len(add_dev) < 5:
+                    add_dev = '0' + add_dev
+
+                smis_devices.get_volume_instance(system_name, add_dev.upper())
+                add_devs.append(add_dev.upper())
+            except ReferenceError:
+                print '%s: volume not found' % add_dev.upper()
+        if len(add_devs) > 0:
+            print 'Adding ' + str(add_devs) + ' to ' + sg_name
+            smis_masking.add_members_sg(system_name, storage_group_id, add_devs)
+    else:
+        raise AssertionError('Unknown operation')
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass
