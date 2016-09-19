@@ -107,9 +107,9 @@ class VmaxSmisMasking(object):
         return initiator_ids
 
     def create_masking_view(self, system_name, mv_name, ig_name, sg_name, pg_name):
-        ig_instance_name = self.get_ig_by_name(system_name, ig_name)
-        sg_instance_name = self.get_sg_by_name(system_name, sg_name)
-        pg_instance_name = self.get_pg_by_name(system_name, pg_name)
+        ig_instance_name = self.get_ig_instance_name(system_name, self.get_ig_by_name(system_name, ig_name))
+        sg_instance_name = self.get_sg_instance_name(system_name, self.get_sg_by_name(system_name, sg_name))
+        pg_instance_name = self.get_pg_instance_name(system_name, self.get_pg_by_name(system_name, pg_name))
         rc, job = self.smis_base.invoke_controller_method('CreateMaskingView', system_name,
                                                           ElementName=mv_name,
                                                           InitiatorMaskingGroup=ig_instance_name,
