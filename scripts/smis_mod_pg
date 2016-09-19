@@ -96,11 +96,10 @@ def main():
     if is_delete:
         smis_masking.delete_pg(system_name, port_group_id)
     elif is_remove:
-        pg_dir_ids = smis_masking.list_directors_in_pg(system_name, port_group_id)
+        pg_dirs = smis_masking.list_directors_in_pg(system_name, port_group_id)
         remove_dirs = []
         for remove_dir in remainder:
-            remove_id = smis_masking.get_storage_director_by_name(system_name, remove_dir)
-            if remove_id in pg_dir_ids:
+            if remove_dir in pg_dirs:
                 remove_dirs.append(remove_dir)
             else:
                 print '%s: Not found in PG' % remove_dir
