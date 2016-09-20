@@ -35,8 +35,8 @@ def main():
     sid = os.getenv('SMIS_SID', None)
     user = os.getenv('SMIS_USER', 'admin')
     password = os.getenv('SMIS_PASSWORD', '#1Password')
-    use_ssl = False
-    port = 5988
+    use_ssl = eval(os.getenv('SMIS_SSL', 'False'))
+    port = 5989 if use_ssl else 5988
     pg_name = None
     is_create = False
     is_add = False
@@ -94,6 +94,10 @@ def main():
             sys.exit(1)
 
     if is_delete:
+        views = smis_masking.list_views_containing_pg(system_name, port_group_id)
+        if len(views) > 0:
+            print '%s: In masking views %s' % (pg_name, str(views))
+            sys.exit(1)
         smis_masking.delete_pg(system_name, port_group_id)
     elif is_remove:
         pg_dirs = smis_masking.list_directors_in_pg(system_name, port_group_id)

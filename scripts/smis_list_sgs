@@ -35,8 +35,8 @@ def main():
     user = os.getenv('SMIS_USER', 'admin')
     password = os.getenv('SMIS_PASSWORD', '#1Password')
     name = None
-    use_ssl = False
-    port = 5988
+    use_ssl = eval(os.getenv('SMIS_SSL', 'False'))
+    port = 5989 if use_ssl else 5988
     for opt, arg in options:
         if opt in ('-h', '--host'):
             host = arg

@@ -33,8 +33,8 @@ def main():
     sid = os.getenv('SMIS_SID', None)
     user = os.getenv('SMIS_USER', 'admin')
     password = os.getenv('SMIS_PASSWORD', '#1Password')
-    use_ssl = False
-    port = 5988
+    use_ssl = eval(os.getenv('SMIS_SSL', 'False'))
+    port = 5989 if use_ssl else 5988
     name = None
     sg_name = None
     pg_name = None
