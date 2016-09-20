@@ -361,7 +361,11 @@ class VmaxSmisMasking(object):
         return dir_names
 
     def list_views_containing_pg(self, system_name, pg_instance_id):
-        return self.smis_base.list_views_for_port_group(self.get_pg_instance_name(system_name, pg_instance_id))
+        instances = self.smis_base.list_views_for_port_group(self.get_pg_instance_name(system_name, pg_instance_id))
+        mv_device_ids = []
+        for instance in instances:
+            mv_device_ids.append(instance['DeviceID'])
+        return mv_device_ids
 
     def create_pg(self, system_name, pg_name, director_names=None):
         if director_names is not None and len(director_names) > 0:
@@ -489,7 +493,12 @@ class VmaxSmisMasking(object):
         return hba_ids
 
     def list_views_containing_ig(self, system_name, ig_instance_id):
-        return self.smis_base.list_views_for_initiator_group(self.get_ig_instance_name(system_name, ig_instance_id))
+        instances = self.smis_base.list_views_for_initiator_group(self.get_ig_instance_name(system_name,
+                                                                                            ig_instance_id))
+        mv_device_ids = []
+        for instance in instances:
+            mv_device_ids.append(instance['DeviceID'])
+        return mv_device_ids
 
     @staticmethod
     def get_hba_type(www_or_iqn):
