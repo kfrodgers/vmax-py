@@ -135,7 +135,7 @@ class VmaxSmisMasking(object):
     def delete_masking_view(self, system_name, mv_instance_id, force=True):
         instance_name = self.get_mv_instance_name(system_name, mv_instance_id)
         rc, job = self.smis_base.invoke_controller_method('DeleteMaskingView', system_name,
-                                                          ProtocolController=instance_name, Force=force)
+                                                          ProtocolController=instance_name)
         if rc != 0:
             rc, errordesc = self.smis_base.wait_for_job_complete(job['job'])
             if rc != 0:
