@@ -19,9 +19,21 @@ Note there are also command line options for each of the above.
  
 ###### Run Commands
 ```
-smis_list_devs - list devices
-smis_list_mvs  - list masking views
-smis_list_sgs  - list storage groups
-smis_list_igs  - list initiator groups
-smis_list_pgs  - list port groups
+smis_add_devs   - Add new devices
+smis_add_mv     - Add masking view
+smis_del_devs   - Delete devices
+smis_del_mv     - Delete masking view
+smis_list_devs  - List devices
+smis_list_dirs  - List front end directors
+smis_list_igs   - List initiator groups
+smis_list_mvs   - List maskign views
+smis_list_pgs   - List port groups
+smis_list_pools - List storage pools
+smis_list_sgs   - List storage groups
+smis_list_unmapped_devs  - List unmapped devices
+smis_mod_ig     - Add/Delete/Modify initiator groups
+smis_mod_pg     - Add/Delete/Modify port groups
+smis_mod_sg     - Add/Delete/Modify storage groups
+smis_show_devs  - Show device attributes
+smis_show_sync  - Show copy/sync partners
 ```
