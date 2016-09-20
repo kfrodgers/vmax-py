@@ -14,6 +14,7 @@ SMIS_HOST - Hostname or IP address, no default
 SMIS_SID - Symmetrix Id, no default
 SMIS_USER - User name defaults to 'admin'
 SMIS_PASSWORD - Password defaults to '#1Password'
+SMIS_SSL - Enable SSL defaults to 'False'
 ```
 Note there are also command line options for each of the above.
  
