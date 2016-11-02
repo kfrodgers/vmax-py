@@ -277,7 +277,8 @@ def list_devs():
 
     for dev_id in smis_devices.list_all_devices(system_name):
         volume = smis_devices.get_volume_instance(system_name, dev_id)
-        if (len(name) is 0 or volume['ElementName'].startswith(name)) \
+        if volume['Caption'] != 'TDEV' \
+                and (len(name) is 0 or volume['ElementName'].startswith(name)) \
                 and (mapped_only is False or volume['EMCIsMapped'] is True) \
                 and (unmapped_only is False or volume['EMCIsMapped'] is False):
             print str(dev_id) + '\tName=' + volume['ElementName'] + \

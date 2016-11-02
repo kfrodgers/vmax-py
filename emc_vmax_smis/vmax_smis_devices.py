@@ -32,7 +32,8 @@ class VmaxSmisDevices(object):
             self.devices = self.smis_base.list_storage_volumes(property_list=['ElementName', 'SystemName',
                                                                               'DeviceID', 'SpaceConsumed',
                                                                               'ConsumableBlocks', 'BlockSize',
-                                                                              'EMCIsMapped', 'IsComposite', 'Usage'])
+                                                                              'EMCIsMapped', 'IsComposite',
+                                                                              'Caption', 'Usage'])
             self.devices_refresh = False
 
         return self.devices
