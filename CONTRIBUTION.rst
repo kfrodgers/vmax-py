@@ -1,5 +1,5 @@
 ==========================================
-Contributing to EMC VMAX Flocker Driver
+Contributing to EMC VMAX SMI-S Library
 ==========================================
 
 Introduction

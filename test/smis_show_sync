@@ -1,0 +1,10 @@
+#! /usr/bin/python
+# Copyright 2016 EMC Corporation
+
+from emc_vmax_smis.vmax_smis_commands import show_sync
+
+if __name__ == '__main__':
+    try:
+        show_sync()
+    except KeyboardInterrupt:
+        pass

@@ -3,6 +3,14 @@
 #### A python module for interacting with EMC Solutions Enabler's SMI-S API
 
 ###### Install OpenStack Cinder
+First install required libraries and utilities.
+```bash
+sudo apt-get -y install git python-dev python-pip
+sudo apt-get -y install libpq-dev libxslt1-dev
+sudo apt-get -y install swig
+sudp pip install -U pip
+```
+Then install VMAX-py
 ```bash
 git clone https://github.com/kfrodgers/vmax-py
 sudo pip install ./vmax-py/

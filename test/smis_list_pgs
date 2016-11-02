@@ -1,0 +1,10 @@
+#! /usr/bin/python
+# Copyright 2016 EMC Corporation
+
+from emc_vmax_smis.vmax_smis_commands import list_pgs
+
+if __name__ == '__main__':
+    try:
+        list_pgs()
+    except KeyboardInterrupt:
+        pass

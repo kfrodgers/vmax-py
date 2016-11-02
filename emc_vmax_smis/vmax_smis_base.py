@@ -1,9 +1,7 @@
 # Copyright 2016 EMC Corporation
 
 import pywbem
-import inspect
 from oslo_service import loopingcall
-import vmax_smis_https
 
 EMC_ROOT = 'root/emc'
 
@@ -59,40 +57,26 @@ class VmaxSmisBase(object):
         """
 
         if self.ecomUseSSL:
-            argspec = inspect.getargspec(pywbem.WBEMConnection.__init__)
-            if any("ca_certs" in s for s in argspec.args):
-                updated_pywbem = True
-            else:
-                updated_pywbem = False
-            setattr(pywbem.cim_http, 'wbem_request', vmax_smis_https.wbem_request)
-            if hasattr(pywbem.cim_operations, 'wbem_request'):
-                setattr(pywbem.cim_operations, 'wbem_request', vmax_smis_https.wbem_request)
-            if updated_pywbem:
-                self.conn = pywbem.WBEMConnection(
-                    self.url,
-                    (self.user, self.passwd),
-                    default_namespace=EMC_ROOT,
-                    x509={"key_file": self.client_cert_key,
-                          "cert_file": self.client_cert_key},
-                    ca_certs=self.ecom_ca_cert,
-                    no_verification=self.ecom_no_verification)
-            else:
-                self.conn = pywbem.WBEMConnection(
-                    self.url,
-                    (self.user, self.passwd),
-                    default_namespace=EMC_ROOT,
-                    x509={"key_file": self.client_cert_key,
-                          "cert_file": self.client_cert_key})
+            self.conn = pywbem.WBEMConnection(
+                self.url,
+                (self.user, self.passwd),
+                default_namespace=EMC_ROOT,
+                x509={"key_file": self.client_cert_key,
+                      "cert_file": self.client_cert_key},
+                ca_certs=self.ecom_ca_cert,
+                no_verification=self.ecom_no_verification)
         else:
             self.conn = pywbem.WBEMConnection(
                 self.url,
                 (self.user, self.passwd),
                 default_namespace=EMC_ROOT)
 
-        self.conn.debug = True
-        if self.conn is None:
-            exception_message = "Cannot connect to ECOM server."
-            raise RuntimeError(RuntimeError=exception_message)
+        try:
+            # Verify connection by making a simple request
+            self.software_ids = self.conn.EnumerateInstances('Symm_StorageSystemSoftwareIdentity')
+            self.conn.debug = True
+        except Exception:
+            raise RuntimeError("Cannot connect to ECOM server, %s." % self.url)
 
     @staticmethod
     def dump_instance(instance):
@@ -422,8 +406,7 @@ class VmaxSmisBase(object):
         return (major_version == 8 and minor_version >= 1) or (major_version > 8)
 
     def is_array_v3(self, system_name):
-        software_ids = self.list_storage_software_identity(property_list=['InstanceID', 'EMCEnginuityFamily'])
-        for software_id in software_ids:
+        for software_id in self.software_ids:
             if system_name in software_id['InstanceID']:
                 ucode_family = software_id['EMCEnginuityFamily']
                 break
