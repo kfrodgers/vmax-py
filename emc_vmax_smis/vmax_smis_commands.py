@@ -277,13 +277,13 @@ def list_devs():
 
     for dev_id in smis_devices.list_all_devices(system_name):
         volume = smis_devices.get_volume_instance(system_name, dev_id)
-        if volume['Caption'] != 'TDEV' \
+        if 'dev' in volume['Caption'].lower() \
                 and (len(name) is 0 or volume['ElementName'].startswith(name)) \
                 and (mapped_only is False or volume['EMCIsMapped'] is True) \
                 and (unmapped_only is False or volume['EMCIsMapped'] is False):
-            print str(dev_id) + '\tName=' + volume['ElementName'] + \
-                  '\tIsMapped=' + str(volume['EMCIsMapped']) + \
-                  '\tIsComposite=' + str(volume['IsComposite'])
+            print str(dev_id) + '    Name=' + volume['ElementName'] + \
+                  '    Type=' + str(volume['Caption']) + \
+                  '    Mapped=' + str(volume['EMCIsMapped'])
 
 
 def list_dirs():
