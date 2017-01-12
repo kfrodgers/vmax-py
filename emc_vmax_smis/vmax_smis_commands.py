@@ -272,18 +272,18 @@ def list_devs():
         sys.exit(2)
 
     smis_devices = VmaxSmisDevices(host=host, port=port, user=user, passwd=password, use_ssl=use_ssl)
-
     system_name = find_symmetrix(smis_devices.smis_base, sid)
 
+    format_string = '%-10s %-45s %-10s %-5s'
+    print format_string % ('Id', 'Name', 'Type', 'Mapped')
     for dev_id in smis_devices.list_all_devices(system_name):
         volume = smis_devices.get_volume_instance(system_name, dev_id)
         if 'dev' in volume['Caption'].lower() \
                 and (len(name) is 0 or volume['ElementName'].startswith(name)) \
                 and (mapped_only is False or volume['EMCIsMapped'] is True) \
                 and (unmapped_only is False or volume['EMCIsMapped'] is False):
-            print str(dev_id) + '    Name=' + volume['ElementName'] + \
-                  '    Type=' + str(volume['Caption']) + \
-                  '    Mapped=' + str(volume['EMCIsMapped'])
+            print format_string % (str(dev_id), volume['ElementName'],
+                                   str(volume['Caption']), str(volume['EMCIsMapped']))
 
 
 def list_dirs():

@@ -47,9 +47,9 @@ setup(
                             'smis_list_pools = emc_vmax_smis.vmax_smis_commands:list_pools',
                             'smis_list_sgs = emc_vmax_smis.vmax_smis_commands:list_sgs',
                             'smis_list_unmapped_devs = emc_vmax_smis.vmax_smis_commands:list_unmapped_devs',
-                            'smis_mog_ig = emc_vmax_smis.vmax_smis_commands:mog_ig',
-                            'smis_mog_pg = emc_vmax_smis.vmax_smis_commands:mog_pg',
-                            'smis_mog_sg = emc_vmax_smis.vmax_smis_commands:mog_sg',
+                            'smis_mod_ig = emc_vmax_smis.vmax_smis_commands:mod_ig',
+                            'smis_mod_pg = emc_vmax_smis.vmax_smis_commands:mod_pg',
+                            'smis_mod_sg = emc_vmax_smis.vmax_smis_commands:mod_sg',
                             'smis_show_devs = emc_vmax_smis.vmax_smis_commands:show_devs',
                             'smis_show_sync = emc_vmax_smis.vmax_smis_commands:show_sync']
     },
