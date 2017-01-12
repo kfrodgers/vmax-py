@@ -470,10 +470,10 @@ def list_unmapped_devs():
 def mod_ig():
     parameter_list = BASE_PARAMETERS
     parameter_list.extend([('--name', True, None, None),
-                           ('--create', True, 'False', None),
-                           ('--delete', True, 'False', None),
-                           ('--add', True, 'False', None),
-                           ('--remove', True, 'False', None)])
+                           ('--create', False, 'False', None),
+                           ('--delete', False, 'False', None),
+                           ('--add', False, 'False', None),
+                           ('--remove', False, 'False', None)])
 
     remainder = getopt_wrapper(parameter_list)
 
@@ -487,9 +487,9 @@ def mod_ig():
     if use_ssl and port == 5988:
         port = 5989
     is_create = eval(get_paramter('--create', parameter_list))
-    is_add = eval(get_paramter('--delete', parameter_list))
-    is_remove = eval(get_paramter('--add', parameter_list))
-    is_delete = eval(get_paramter('--remove', parameter_list))
+    is_add = eval(get_paramter('--add', parameter_list))
+    is_remove = eval(get_paramter('--remove', parameter_list))
+    is_delete = eval(get_paramter('--delete', parameter_list))
 
     if is_add == is_remove or (is_create and is_delete):
         sys.exit(1)
@@ -545,10 +545,10 @@ def mod_ig():
 def mod_pg():
     parameter_list = BASE_PARAMETERS
     parameter_list.extend([('--name', True, None, None),
-                           ('--create', True, 'False', None),
-                           ('--delete', True, 'False', None),
-                           ('--add', True, 'False', None),
-                           ('--remove', True, 'False', None)])
+                           ('--create', False, 'False', None),
+                           ('--delete', False, 'False', None),
+                           ('--add', False, 'False', None),
+                           ('--remove', False, 'False', None)])
 
     remainder = getopt_wrapper(parameter_list)
 
@@ -562,9 +562,9 @@ def mod_pg():
     if use_ssl and port == 5988:
         port = 5989
     is_create = eval(get_paramter('--create', parameter_list))
-    is_add = eval(get_paramter('--delete', parameter_list))
-    is_remove = eval(get_paramter('--add', parameter_list))
-    is_delete = eval(get_paramter('--remove', parameter_list))
+    is_add = eval(get_paramter('--add', parameter_list))
+    is_remove = eval(get_paramter('--remove', parameter_list))
+    is_delete = eval(get_paramter('--delete', parameter_list))
 
     if is_add == is_remove or (is_create and is_delete):
         sys.exit(1)
@@ -619,10 +619,10 @@ def mod_pg():
 def mod_sg():
     parameter_list = BASE_PARAMETERS
     parameter_list.extend([('--name', True, None, None),
-                           ('--create', True, 'False', None),
-                           ('--delete', True, 'False', None),
-                           ('--add', True, 'False', None),
-                           ('--remove', True, 'False', None)])
+                           ('--create', False, 'False', None),
+                           ('--delete', False, 'False', None),
+                           ('--add', False, 'False', None),
+                           ('--remove', False, 'False', None)])
 
     remainder = getopt_wrapper(parameter_list)
 
@@ -636,9 +636,9 @@ def mod_sg():
     if use_ssl and port == 5988:
         port = 5989
     is_create = eval(get_paramter('--create', parameter_list))
-    is_add = eval(get_paramter('--delete', parameter_list))
-    is_remove = eval(get_paramter('--add', parameter_list))
-    is_delete = eval(get_paramter('--remove', parameter_list))
+    is_add = eval(get_paramter('--add', parameter_list))
+    is_remove = eval(get_paramter('--remove', parameter_list))
+    is_delete = eval(get_paramter('--delete', parameter_list))
 
     if is_add == is_remove or (is_create and is_delete):
         sys.exit(1)
