@@ -491,7 +491,7 @@ def mod_ig():
     is_remove = eval(get_paramter('--remove', parameter_list))
     is_delete = eval(get_paramter('--delete', parameter_list))
 
-    if is_add == is_remove or (is_create and is_delete):
+    if (not is_create and not is_delete and is_add == is_remove) or (is_create and is_delete):
         sys.exit(1)
 
     smis_masking = VmaxSmisMasking(host=host, port=port, user=user, passwd=password, use_ssl=use_ssl)
@@ -566,7 +566,7 @@ def mod_pg():
     is_remove = eval(get_paramter('--remove', parameter_list))
     is_delete = eval(get_paramter('--delete', parameter_list))
 
-    if is_add == is_remove or (is_create and is_delete):
+    if (not is_create and not is_delete and is_add == is_remove) or (is_create and is_delete):
         sys.exit(1)
 
     smis_masking = VmaxSmisMasking(host=host, port=port, user=user, passwd=password, use_ssl=use_ssl)
@@ -640,7 +640,7 @@ def mod_sg():
     is_remove = eval(get_paramter('--remove', parameter_list))
     is_delete = eval(get_paramter('--delete', parameter_list))
 
-    if is_add == is_remove or (is_create and is_delete):
+    if (not is_create and not is_delete and is_add == is_remove) or (is_create and is_delete):
         sys.exit(1)
 
     smis_masking = VmaxSmisMasking(host=host, port=port, user=user, passwd=password, use_ssl=use_ssl)
